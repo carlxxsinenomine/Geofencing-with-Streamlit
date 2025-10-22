@@ -12,6 +12,8 @@ from folium.plugins import Draw
 st.set_page_config(layout="wide")
 
 # Initialize session state for storing named shapes
+# Everytime na nag iinteract ang user sa web naga-automatic rerun ang streamlit
+# st.session_state jan naka store ung previous state ng app
 if 'named_shapes' not in st.session_state:
     st.session_state.named_shapes = []
 if 'last_drawing_count' not in st.session_state:
@@ -55,11 +57,11 @@ with output_col:
 
     # Show name input dialog if pending
     if st.session_state.pending_name and all_drawings:
-        st.subheader("🎯 New Shape Drawn")
+        st.subheader("New Shape Drawn")
         shape_name = st.text_input(
             "Enter a name for this shape:",
             key=f"shape_name_{st.session_state.last_drawing_count}",
-            placeholder="e.g., Park Area, Building 1, etc."
+            placeholder="Enter fence name"
         )
 
         col1, col2 = st.columns(2)
