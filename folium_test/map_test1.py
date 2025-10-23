@@ -23,6 +23,21 @@ if 'pending_name' not in st.session_state:
 
 m = folium.Map(zoom_start=12)
 
+# Accepts a string name for shapes, and returns its respective colors
+def get_color_shape(shape_name):
+    lowered_shape_name = shape_name.lower()
+    # for now return color strings maya nalang ung actual colors
+    if 'safe area' in lowered_shape_name:
+        return 'blue' # blue for sage area
+    elif 'high risk area' in lowered_shape_name:
+        return 'red' # Red for high risk
+    else:
+        return 'green' # Green for evacuation centers etc.
+
+# So here's the plan, all states of the app are stored in the session state
+# meaning if i want to access every property and attribute i can access it through the session state
+# the plan? wala putangina
+
 # Draw plugin for drawing shapes on map layer
 # set polyline, and circlemarker to false since nde naman need
 drawn_shapes = Draw(
@@ -41,7 +56,7 @@ rt = folium.plugins.LocateControl(auto_start=True).add_to(m)
 map_col, output_col = st.columns(2)
 
 with map_col:
-    st_data = st_folium.st_folium(m, width=725, key="map")
+    st_data = st_folium.st_folium(m, width=725, key="map_reset")
 
 with output_col:
     all_drawings = st_data.get('all_drawings')
