@@ -94,6 +94,7 @@ with output_col:
                     if 'properties' not in latest_drawing: # if 'properties' key not in latest_drawing
                         latest_drawing['properties'] = {}
                     latest_drawing['properties']['name'] = shape_name
+                    latest_drawing['properties']['is_active'] = False # to check if fence is active or nae
 
                     # Store in session state
                     st.session_state.named_shapes.append(latest_drawing)
@@ -109,6 +110,7 @@ with output_col:
                 if 'properties' not in latest_drawing:
                     latest_drawing['properties'] = {}
                 latest_drawing['properties']['name'] = "Unnamed"
+                latest_drawing['properties']['is_active'] = False  # to check if fence is active or nae
                 st.session_state.named_shapes.append(latest_drawing)
                 st.session_state.pending_name = False
                 st.rerun()
