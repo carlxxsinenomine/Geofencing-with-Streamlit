@@ -25,9 +25,18 @@ if 'pending_name' not in st.session_state:
 
 m = folium.Map(zoom_start=12)
 
+# update each feature in the named_shapes with its corresponding color based on labels
+def update_named_shapes():
+    try:
+        for feature in st.session_state.named_shapes:
+            pass
+    except IndexError:
+        st.write("No features available.")
+
+
 # Accepts a string name for shapes, and returns its respective colors
-def get_color_shape(shape_name):
-    lowered_shape_name = shape_name.lower()
+def get_color_shape(feature_shape):
+    lowered_shape_name = feature_shape.lower()
     # for now return color strings maya nalang ung actual colors
     if 'safe area' in lowered_shape_name:
         return '#647FBC' # blue for sage area
@@ -37,15 +46,19 @@ def get_color_shape(shape_name):
         return '#A7E399' # Green for evacuation centers etc.
 
 # function for styling the fence
-def shape_style(feature):
-    pass
+def shape_style(feature_shape):
+    return {
+        'color': get_color_shape(feature_shape),
+        'weight': 1,
+    }
+
 # So here's the plan, all states of the app are stored in the session state
 # meaning if i want to access every property and attribute i can access it through the session state
 # the plan? wala putangina
 # here's the plan, whenever the user has drawn shapes on the map,
 # access its features from the 'last_active_drawing'
 # function for saving features into GeoJson format and render it to map
-# Some helpful links
+# Some useful links
 # https://gis.stackexchange.com/questions/394219/folium-draw-polygons-with-distinct-colours
 # https://python-visualization.github.io/folium/latest/user_guide/geojson/geojson.html
 # https://leafletjs.com/reference.html#path
