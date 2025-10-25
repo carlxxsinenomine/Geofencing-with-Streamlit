@@ -30,7 +30,7 @@ def update_named_shapes():
     try:
         for feature in st.session_state.named_shapes:
             # if nde pa present sa properties ung color key then proceed
-            if not feature.get('properties').get('color'):
+            if not feature.get('properties').get('color') and 'Point' not in feature.get('geometry').get('type'):
                 feature['properties']['color'] = get_color_shape(feature['properties']['name'])
 
     except IndexError:
@@ -141,7 +141,6 @@ with output_col:
                 st.session_state.pending_name = False
                 update_named_shapes()
                 st.rerun()
-
 
     # Display all named shapes
     st.subheader("Named Shapes")
