@@ -29,7 +29,10 @@ m = folium.Map(zoom_start=12)
 def update_named_shapes():
     try:
         for feature in st.session_state.named_shapes:
-            pass
+            # if nde pa present sa properties ung color key then proceed
+            if not feature.get('properties').get('color'):
+                feature['properties']['color'] = get_color_shape(feature['properties']['name'])
+
     except IndexError:
         st.write("No features available.")
 
@@ -39,17 +42,17 @@ def get_color_shape(feature_shape):
     lowered_shape_name = feature_shape.lower()
     # for now return color strings maya nalang ung actual colors
     if 'safe area' in lowered_shape_name:
-        return '#647FBC' # blue for sage area
+        return 'blue' # blue for sage area
     elif 'high risk area' in lowered_shape_name:
-        return '#F75270' # Red for high risk
+        return 'red' # Red for high risk
     else:
-        return '#A7E399' # Green for evacuation centers etc.
+        return 'green' # Green for evacuation centers etc.
 
 # function for styling the fence
 def shape_style(feature_shape):
     return {
         'color': get_color_shape(feature_shape),
-        'weight': 1,
+        'weight': 2,
     }
 
 # So here's the plan, all states of the app are stored in the session state
@@ -121,6 +124,7 @@ with output_col:
                     # Store in session state
                     st.session_state.named_shapes.append(latest_drawing)
                     st.session_state.pending_name = False
+                    update_named_shapes()
                     st.rerun()
                 else:
                     st.warning("Please enter a name!")
@@ -135,7 +139,9 @@ with output_col:
                 latest_drawing['properties']['is_active'] = False  # to check if fence is active or nae
                 st.session_state.named_shapes.append(latest_drawing)
                 st.session_state.pending_name = False
+                update_named_shapes()
                 st.rerun()
+
 
     # Display all named shapes
     st.subheader("Named Shapes")
