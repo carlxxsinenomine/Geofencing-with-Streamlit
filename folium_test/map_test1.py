@@ -36,12 +36,17 @@ def get_color_shape(shape_name):
     else:
         return '#A7E399' # Green for evacuation centers etc.
 
+# function for styling the fence
+def shape_style(feature):
+    pass
 # So here's the plan, all states of the app are stored in the session state
 # meaning if i want to access every property and attribute i can access it through the session state
 # the plan? wala putangina
 # here's the plan, whenever the user has drawn shapes on the map,
 # access its features from the 'last_active_drawing'
-
+# function for saving features into GeoJson format and render it to map
+def save_to_geojson():
+    pass
 
 # Draw plugin for drawing shapes on map layer
 # set polyline, and circlemarker to false since nde naman need
