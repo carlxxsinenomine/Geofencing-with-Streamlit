@@ -45,6 +45,10 @@ def shape_style(feature):
 # here's the plan, whenever the user has drawn shapes on the map,
 # access its features from the 'last_active_drawing'
 # function for saving features into GeoJson format and render it to map
+# Some helpful links
+# https://gis.stackexchange.com/questions/394219/folium-draw-polygons-with-distinct-colours
+# https://python-visualization.github.io/folium/latest/user_guide/geojson/geojson.html
+# https://leafletjs.com/reference.html#path
 def save_to_geojson():
     pass
 
