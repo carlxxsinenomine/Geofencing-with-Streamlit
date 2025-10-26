@@ -28,11 +28,19 @@ def update_named_shapes():
     try:
         for feature in st.session_state.named_shapes:
             # If nde pa present sa properties ung color key then proceed
-            if not feature.get('properties').get('color') and 'Point' not in feature.get('geometry').get('type'):
+            if not feature.get('properties').get('color'):
                 feature['properties']['color'] = get_color_shape(feature['properties']['name'])
 
-    except IndexError:
-        st.write("No features available.")
+            # Folium handles Points and Circles differently than Polygons
+            # For circle and point shape
+            # Stores the radius into the 'properties'
+            if feature.get('geometry', {}).get('type') == 'Point':
+                if 'radius' not in feature.get('properties', {}):
+                    # Default radius if not provided
+                    feature['properties']['radius'] = feature.get('properties', {}).get('radius', 0)
+
+    except (AttributeError, KeyError) as e:
+        st.write(f"Error adding features: {e}")
 
 # Accepts a string name for shapes, and returns its respective colors
 def get_color_shape(feature_shape):
@@ -68,10 +76,29 @@ def add_shapes_to_map():
     try:
         for feature in st.session_state.named_shapes:
             if feature.get('properties', {}).get('color'):
-                folium.GeoJson(
-                    data=feature,
-                    style_function=shape_style,
-                ).add_to(m)
+                geom_type = feature.get('geometry', {}).get('type', '')
+
+                if geom_type == 'Point':
+                    coords = feature['geometry']['coordinates']
+                    radius = feature.get('properties', {}).get('radius', 0)
+                    color = feature['properties']['color']
+
+                    folium.Circle(
+                        location=[coords[1], coords[0]],  # [lat, lon]
+                        radius=radius,
+                        color=color,
+                        fill=True,
+                        fillColor=color,
+                        fillOpacity=0.2,
+                        weight=1,
+                    ).add_to(m)
+                else:
+                    # Handle polygons and other shapes
+                    folium.GeoJson(
+                        data=feature,
+                        style_function=shape_style,
+                    ).add_to(m)
+
     except (AttributeError, KeyError) as e:
         st.write(f"Error adding features: {e}")
 
@@ -88,6 +115,12 @@ def save_properties(is_named, drawing):
         drawing['properties']['name'] = shape_name
     else:
         drawing['properties']['name'] = "Unnamed"
+
+    # For circles, preserve the radius
+    if drawing.get('geometry', {}).get('type') == 'Point':
+        # The radius is usually stored in properties by the Draw plugin
+        if 'radius' not in drawing['properties']:
+            drawing['properties']['radius'] = 0  # Default radius
 
     # Create a unique ID for this shape
     shape_id = f"{drawing['geometry']['type']}_{len(st.session_state.named_shapes)}"
@@ -111,7 +144,6 @@ def get_drawing_id(drawing):
     # Coordinates of each geom object
     coords = str(geom.get('coordinates', ''))
 
-    # Create a simple hash-like ID
     # To distinguish different shapes with different coordinate points
     return f"{geom_type}_{hash(coords)}"
 
