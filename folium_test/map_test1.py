@@ -143,7 +143,6 @@ def get_drawing_id(drawing):
     geom_type = geom.get('type', '')
     # Coordinates of each geom object
     coords = str(geom.get('coordinates', ''))
-
     # To distinguish different shapes with different coordinate points
     return f"{geom_type}_{hash(coords)}"
 
@@ -156,6 +155,7 @@ drawn_shapes = Draw(
     draw_options={
         'polyline': False,
         'circlemarker': False,
+        'marker': False,
     }
 ).add_to(m)
 
