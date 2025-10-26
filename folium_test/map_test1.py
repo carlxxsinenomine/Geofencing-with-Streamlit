@@ -1,10 +1,6 @@
 import folium
-import shapely
-import requests
 import streamlit as st
-import streamlit_folium
 import streamlit_folium as st_folium
-from folium import JsCode
 from folium.plugins import Realtime
 from folium.plugins import Draw
 
@@ -71,8 +67,7 @@ def shape_style(feature_shape):
 def add_shapes_to_map():
     try:
         for feature in st.session_state.named_shapes:
-            if (feature.get('properties', {}).get('color')
-                    and 'Point' not in feature.get('geometry', {}).get('type', '')):
+            if feature.get('properties', {}).get('color'):
                 folium.GeoJson(
                     data=feature,
                     style_function=shape_style,
@@ -106,18 +101,23 @@ def save_properties(is_named, drawing):
 # Get unique identifier for a drawing
 def get_drawing_id(drawing):
     # Create a unique ID based on geometry type and coordinates
+    # If drawing is None, or 'geometry' key is not in drawing
     if not drawing or 'geometry' not in drawing:
         return None
 
     geom = drawing['geometry']
+    # geom_type such as Point, Polygon, etc.
     geom_type = geom.get('type', '')
+    # Coordinates of each geom object
     coords = str(geom.get('coordinates', ''))
 
     # Create a simple hash-like ID
+    # To distinguish different shapes with different coordinate points
     return f"{geom_type}_{hash(coords)}"
 
 
 # Draw plugin for drawing shapes on map layer
+# Set polyline and circlemarker as False since hindi naman na sila need(for now)
 drawn_shapes = Draw(
     export=False,
     show_geometry_on_click=True,
@@ -148,7 +148,7 @@ with output_col:
         latest_drawing = all_drawings[-1]
         drawing_id = get_drawing_id(latest_drawing)
 
-        # Check if this is a new shape that hasn't been processed
+        # Check if drawing_id exists and drawing_id is not yet processed
         if drawing_id and drawing_id not in st.session_state.processed_shape_ids:
             # Only set pending if we're not already pending
             if not st.session_state.pending_name:
