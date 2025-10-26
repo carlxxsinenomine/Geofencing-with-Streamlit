@@ -8,7 +8,7 @@ from folium import JsCode
 from folium.plugins import Realtime
 from folium.plugins import Draw
 
-# config for app layout on web
+# Config for app layout on web
 st.set_page_config(layout="wide")
 
 st.title("Geofence Feature")
@@ -18,58 +18,106 @@ st.title("Geofence Feature")
 # st.session_state jan naka store ung previous state ng app
 if 'named_shapes' not in st.session_state:
     st.session_state.named_shapes = []
-if 'last_drawing_count' not in st.session_state:
-    st.session_state.last_drawing_count = 0
+# Will be used when adding new shapes
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
+# Stores the unique shape ids
+if 'processed_shape_ids' not in st.session_state:
+    st.session_state.processed_shape_ids = set()
 
 m = folium.Map(zoom_start=12)
 
-# update each feature in the named_shapes with its corresponding color based on labels
+# Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
     try:
         for feature in st.session_state.named_shapes:
-            # if nde pa present sa properties ung color key then proceed
+            # If nde pa present sa properties ung color key then proceed
             if not feature.get('properties').get('color') and 'Point' not in feature.get('geometry').get('type'):
                 feature['properties']['color'] = get_color_shape(feature['properties']['name'])
 
     except IndexError:
         st.write("No features available.")
 
-
 # Accepts a string name for shapes, and returns its respective colors
 def get_color_shape(feature_shape):
     lowered_shape_name = feature_shape.lower()
-    # for now return color strings maya nalang ung actual colors
+    # For now return color strings maya nalang ung actual colors
     if 'safe area' in lowered_shape_name:
-        return 'blue' # blue for sage area
+        return 'blue'  # Blue for safe area
     elif 'high risk area' in lowered_shape_name:
-        return 'red' # Red for high risk
+        return 'red'  # Red for high risk
     else:
-        return 'green' # Green for evacuation centers etc.
+        return 'green'  # Green for evacuation centers etc.
 
-# function for styling the fence
+# Function for styling the fence
 def shape_style(feature_shape):
     return {
-        'color': get_color_shape(feature_shape),
-        'weight': 2,
+        'fillColor': feature_shape['properties']['color'],
+        'color': feature_shape['properties']['color'],
+        'weight': 1,
+        'fillOpacity': 0.2,
     }
 
 # So here's the plan, all states of the app are stored in the session state
-# meaning if i want to access every property and attribute i can access it through the session state
+# Meaning if i want to access every property and attribute i can access it through the session state
 # the plan? wala putangina
-# here's the plan, whenever the user has drawn shapes on the map,
-# access its features from the 'last_active_drawing'
-# function for saving features into GeoJson format and render it to map
+# Here's the plan, whenever the user has drawn shapes on the map,
+# Access its features from the 'last_active_drawing'
+# Function for saving features into GeoJson format and render it to map
 # Some useful links
 # https://gis.stackexchange.com/questions/394219/folium-draw-polygons-with-distinct-colours
 # https://python-visualization.github.io/folium/latest/user_guide/geojson/geojson.html
 # https://leafletjs.com/reference.html#path
-def save_to_geojson():
-    pass
+def add_shapes_to_map():
+    try:
+        for feature in st.session_state.named_shapes:
+            if (feature.get('properties', {}).get('color')
+                    and 'Point' not in feature.get('geometry', {}).get('type', '')):
+                folium.GeoJson(
+                    data=feature,
+                    style_function=shape_style,
+                ).add_to(m)
+    except (AttributeError, KeyError) as e:
+        st.write(f"Error adding features: {e}")
+
+
+# Function for saving shape names
+def save_properties(is_named, drawing):
+    if 'properties' not in drawing:
+        drawing['properties'] = {}
+
+    drawing['properties']['is_active'] = False
+
+    # Add name to properties
+    if is_named:
+        drawing['properties']['name'] = shape_name
+    else:
+        drawing['properties']['name'] = "Unnamed"
+
+    # Create a unique ID for this shape
+    shape_id = f"{drawing['geometry']['type']}_{len(st.session_state.named_shapes)}"
+    drawing['properties']['shape_id'] = shape_id
+
+    st.session_state.named_shapes.append(drawing)
+    st.session_state.processed_shape_ids.add(shape_id)
+    st.session_state.pending_name = False
+
+
+# Get unique identifier for a drawing
+def get_drawing_id(drawing):
+    # Create a unique ID based on geometry type and coordinates
+    if not drawing or 'geometry' not in drawing:
+        return None
+
+    geom = drawing['geometry']
+    geom_type = geom.get('type', '')
+    coords = str(geom.get('coordinates', ''))
+
+    # Create a simple hash-like ID
+    return f"{geom_type}_{hash(coords)}"
+
 
 # Draw plugin for drawing shapes on map layer
-# set polyline, and circlemarker to false since nde naman need
 drawn_shapes = Draw(
     export=False,
     show_geometry_on_click=True,
@@ -79,10 +127,13 @@ drawn_shapes = Draw(
     }
 ).add_to(m)
 
-# for auto location detection
+# For auto location detection
 rt = folium.plugins.LocateControl(auto_start=True).add_to(m)
 
-# layout for widgets in col
+# Add shapes to map
+add_shapes_to_map()
+
+# Layout for widgets in col
 map_col, output_col = st.columns(2)
 
 with map_col:
@@ -92,61 +143,57 @@ with output_col:
     all_drawings = st_data.get('all_drawings')
 
     # Check if a new shape was drawn
-    if all_drawings:
-        current_count = len(all_drawings)
+    if all_drawings and len(all_drawings) > 0:
+        # Get the latest drawing
+        latest_drawing = all_drawings[-1]
+        drawing_id = get_drawing_id(latest_drawing)
 
-        # If new shape detected and not already prompting
-        if current_count > st.session_state.last_drawing_count and not st.session_state.pending_name:
-            st.session_state.pending_name = True
-            st.session_state.last_drawing_count = current_count
+        # Check if this is a new shape that hasn't been processed
+        if drawing_id and drawing_id not in st.session_state.processed_shape_ids:
+            # Only set pending if we're not already pending
+            if not st.session_state.pending_name:
+                st.session_state.pending_name = True
+                st.session_state.current_drawing_id = drawing_id
+                st.rerun()
 
     # Show name input dialog if pending
-    if st.session_state.pending_name and all_drawings:
-        st.subheader("New Shape Drawn")
-        shape_name = st.text_input(
-            "Enter a name for this shape:",
-            key=f"shape_name_{st.session_state.last_drawing_count}",
-            placeholder="Enter fence name"
-        )
+    if st.session_state.pending_name and all_drawings and len(all_drawings) > 0:
+        latest_drawing = all_drawings[-1]
+        drawing_id = get_drawing_id(latest_drawing)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Save", type="primary"):
-                if shape_name:
-                    # Get the latest drawing
-                    latest_drawing = all_drawings[-1] # gets the last index of the List
-                    # Add name to properties
-                    if 'properties' not in latest_drawing: # if 'properties' key not in latest_drawing
-                        latest_drawing['properties'] = {}
-                    latest_drawing['properties']['name'] = shape_name
-                    latest_drawing['properties']['is_active'] = False # to check if fence is active or nae
+        # Verify this is still the shape we're naming
+        if drawing_id == st.session_state.get('current_drawing_id'):
+            st.subheader("New Shape Drawn")
+            # Show preview of what was drawn
+            shape_type = latest_drawing.get('geometry', {}).get('type', 'Unknown')
+            st.info(f"Shape type: {shape_type}")
 
-                    # Store in session state
-                    st.session_state.named_shapes.append(latest_drawing)
-                    st.session_state.pending_name = False
+            shape_name = st.text_input(
+                "Enter a name for this shape:",
+                key=f"shape_name_{drawing_id}",
+                placeholder="Enter fence name"
+            )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Save", type="primary"):
+                    if shape_name:
+                        save_properties(True, latest_drawing)
+                        update_named_shapes()
+                        st.rerun()
+                    else:
+                        st.warning("Please enter a name!")
+
+            with col2:
+                if st.button("Skip"):
+                    save_properties(False, latest_drawing)
                     update_named_shapes()
                     st.rerun()
-                else:
-                    st.warning("Please enter a name!")
-
-        with col2:
-            if st.button("Skip"):
-                # Add without name
-                latest_drawing = all_drawings[-1]
-                if 'properties' not in latest_drawing:
-                    latest_drawing['properties'] = {}
-                latest_drawing['properties']['name'] = "Unnamed"
-                latest_drawing['properties']['is_active'] = False  # to check if fence is active or nae
-                st.session_state.named_shapes.append(latest_drawing)
-                st.session_state.pending_name = False
-                update_named_shapes()
-                st.rerun()
 
     # Display all named shapes
     st.subheader("Named Shapes")
     if st.session_state.named_shapes:
         for idx, shape in enumerate(st.session_state.named_shapes):
-            # get('geometry', {}) if 'geometry' key exist then return its values, else return empty dict {}
             shape_type = shape.get('geometry', {}).get('type', 'Unknown')
             shape_name = shape.get('properties', {}).get('name', 'Unnamed')
 
