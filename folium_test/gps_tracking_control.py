@@ -3,25 +3,46 @@ from branca.element import MacroElement, Template
 class GPSTrackingControl(MacroElement):
     _template = Template("""
         {% macro script(this, kwargs) %}
+            // Blue dot on map
             var locationMarker_{{ this.get_name() }} = null;
+            // Circle showing accuracy
             var accuracyCircle_{{ this.get_name() }} = null;
+            // Blue line showing user path
             var pathLine_{{ this.get_name() }} = null;
+            // Array of user locations
             var pathCoordinates_{{ this.get_name() }} = [];
+            // To check is GPS is currently running
             var isTracking_{{ this.get_name() }} = false;
+            // ID to stop GPS tracking
             var watchId_{{ this.get_name() }} = null;
 
+            // When the user toggled the START GPS button this gets called
             function startTracking_{{ this.get_name() }}() {
+                // Check if supported ba ng browser
                 if (!navigator.geolocation) {
                     alert('Geolocation is not supported by your browser');
                     return;
                 }
-
+                
+                // If supported
+                // Set isTracking_{{ this.get_name() }} to True
+                // this = the current class; this.get_name() gets the name specified in the constructor(__init__)
                 isTracking_{{ this.get_name() }} = true;
+                // Change the value of the element and its styling
                 document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '🟢 Tracking Active';
                 document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'green';
 
+                // This is where the tracking happens
+                // Some useful link(might study indepth): https://www.geeksforgeeks.org/html/html-geolocation-watchposition-method/
                 watchId_{{ this.get_name() }} = navigator.geolocation.watchPosition(
-                    function(position) {
+                    // Params of the watchPosition explained
+                    // Like setInterval() but for GPS
+                    // navigator.geolocation.watchPosition(
+                        // successCallback,  // Called repeatedly when location updates
+                        // errorCallback,    // Called if something goes wrong
+                        // options           // Settings for GPS accuracy/timing
+                    // );
+                    function(position) { // Success Callback
                         var lat = position.coords.latitude;
                         var lng = position.coords.longitude;
                         var accuracy = position.coords.accuracy;
@@ -69,19 +90,20 @@ class GPSTrackingControl(MacroElement):
                             'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) + 
                             '<br>Accuracy: ±' + accuracy.toFixed(0) + 'm';
                     },
-                    function(error) {
+                    function(error) { // Error Callback
                         console.error('Error getting location:', error);
                         document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '❌ Error: ' + error.message;
                         document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';
                     },
-                    {
+                    { // Options
                         enableHighAccuracy: true,
                         maximumAge: 0,
                         timeout: 5000
                     }
                 );
             }
-
+            
+            // This gets called when the user toggled stop tracking
             function stopTracking_{{ this.get_name() }}() {
                 if (watchId_{{ this.get_name() }} !== null) {
                     navigator.geolocation.clearWatch(watchId_{{ this.get_name() }});
@@ -92,6 +114,7 @@ class GPSTrackingControl(MacroElement):
                 document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';
             }
 
+            // This is for clearing the trail of the user
             function clearPath_{{ this.get_name() }}() {
                 if (pathLine_{{ this.get_name() }}) {
                     {{ this._parent.get_name() }}.removeLayer(pathLine_{{ this.get_name() }});
@@ -100,6 +123,7 @@ class GPSTrackingControl(MacroElement):
                 pathCoordinates_{{ this.get_name() }} = [];
             }
 
+            // For the toggle button
             function toggleTracking_{{ this.get_name() }}() {
                 if (isTracking_{{ this.get_name() }}) {
                     stopTracking_{{ this.get_name() }}();
@@ -108,9 +132,10 @@ class GPSTrackingControl(MacroElement):
                 }
             }
 
+            // Styling for GPSControl on the map
             var GPSControl_{{ this.get_name() }} = L.Control.extend({
                 options: {
-                    position: 'topleft'
+                    position: 'bottomleft'
                 },
                 onAdd: function(map) {
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
@@ -144,5 +169,6 @@ class GPSTrackingControl(MacroElement):
     """)
 
     def __init__(self):
+        # Calls the parent class and passed GPSTrackingControl as argument(the Element)
         super(GPSTrackingControl, self).__init__()
-        self._name = 'GPSTrackingControl'
+        self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
