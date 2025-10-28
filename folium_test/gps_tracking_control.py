@@ -43,10 +43,16 @@ class GPSTrackingControl(MacroElement):
                         // options           // Settings for GPS accuracy/timing
                     // );
                     function(position) { // Success Callback
+                        // Get the lat, long, and accuracy in meters
                         var lat = position.coords.latitude;
                         var lng = position.coords.longitude;
                         var accuracy = position.coords.accuracy;
-
+                        
+                        // Removes marker everytime the user coordinates updated
+                        // So that there is only one marker that moves
+                        // this._parent = The map that contains this control; the current folium map instance
+                        // When you create the map in Python; m = folium.Map(zoom_start=12)
+                        // Internally, Folium assigns it a unique JavaScript variable name like; var map_abc123 = L.map(...);
                         if (locationMarker_{{ this.get_name() }}) {
                             {{ this._parent.get_name() }}.removeLayer(locationMarker_{{ this.get_name() }});
                         }
@@ -54,42 +60,58 @@ class GPSTrackingControl(MacroElement):
                             {{ this._parent.get_name() }}.removeLayer(accuracyCircle_{{ this.get_name() }});
                         }
 
-                        locationMarker_{{ this.get_name() }} = L.marker([lat, lng], {
-                            icon: L.divIcon({
+                        locationMarker_{{ this.get_name() }} = L.marker([lat, lng], { // Creates a leaflet marker at user coordinates
+                            icon: L.divIcon({ // Custom icon
                                 className: 'custom-location-marker',
-                                html: '<div style="background-color: #2A93EE; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                                html: '<div style="
+                                                background-color: #2A93EE; // Color blue
+                                                width: 16px; height: 16px; // 16x16 pixel circle
+                                                border-radius: 50%; // Border radius (obviously)
+                                                border: 3px solid white;
+                                                box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                                        "></div>',
                                 iconSize: [16, 16],
                                 iconAnchor: [8, 8]
                             })
-                        }).addTo({{ this._parent.get_name() }});
+                        }).addTo({{ this._parent.get_name() }}); // Add to the map; the m instance created in python
 
+                        // This one's for the accuracy circle
                         accuracyCircle_{{ this.get_name() }} = L.circle([lat, lng], {
                             radius: accuracy,
                             color: '#136AEC',
                             fillColor: '#2A93EE',
                             fillOpacity: 0.15,
                             weight: 2
-                        }).addTo({{ this._parent.get_name() }});
+                        }).addTo({{ this._parent.get_name() }}); // Same as before, add to map
 
+                        // Store user coordinate in array; gagamitin for trailing or pathLine
                         pathCoordinates_{{ this.get_name() }}.push([lat, lng]);
-
+                        // Remove old point layers from map
+                        // Then redraw kasama nung old points to create a trail or path
                         if (pathLine_{{ this.get_name() }}) {
                             {{ this._parent.get_name() }}.removeLayer(pathLine_{{ this.get_name() }});
                         }
-                        if (pathCoordinates_{{ this.get_name() }}.length > 1) {
-                            pathLine_{{ this.get_name() }} = L.polyline(pathCoordinates_{{ this.get_name() }}, {
-                                color: 'blue',
-                                weight: 3,
-                                opacity: 0.7
-                            }).addTo({{ this._parent.get_name() }});
+                        if (pathCoordinates_{{ this.get_name() }}.length > 1) { // Meaning there are multiple points
+                            pathLine_{{ this.get_name() }} = L.polyline(pathCoordinates_{{ this.get_name() }}, { // Create a polyline layer on the map, pass the pathCoordinate array
+                                color: 'blue', // Color of trail or pathLine
+                                weight: 3, // Weight HAHAHAH
+                                opacity: 0.7 // Opacity
+                            }).addTo({{ this._parent.get_name() }}); // Add layer to map
                         }
-
+                        // Move map to center on user position
+                        // getZoom Keeps current zoom level
                         {{ this._parent.get_name() }}.setView([lat, lng], {{ this._parent.get_name() }}.getZoom());
-
+                        
+                        // Information of user's coordinate
                         document.getElementById('coordinates_{{ this.get_name() }}').innerHTML = 
                             'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) + 
                             '<br>Accuracy: ±' + accuracy.toFixed(0) + 'm';
                     },
+                    // This gets called if:
+                        // User denies location permission
+                        // GPS signal lost
+                        // GPS disabled on device malamang tangina
+                        // Or timeout takes longer than 5 seconds as specified in the options parameter
                     function(error) { // Error Callback
                         console.error('Error getting location:', error);
                         document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '❌ Error: ' + error.message;
@@ -106,10 +128,13 @@ class GPSTrackingControl(MacroElement):
             // This gets called when the user toggled stop tracking
             function stopTracking_{{ this.get_name() }}() {
                 if (watchId_{{ this.get_name() }} !== null) {
+                    // clearWatch() stops GPS updates
                     navigator.geolocation.clearWatch(watchId_{{ this.get_name() }});
-                    watchId_{{ this.get_name() }} = null;
+                    watchId_{{ this.get_name() }} = null; // Set to null
                 }
+    
                 isTracking_{{ this.get_name() }} = false;
+                // Update UI
                 document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '🔴 Tracking Stopped';
                 document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';
             }
@@ -124,6 +149,7 @@ class GPSTrackingControl(MacroElement):
             }
 
             // For the toggle button
+            // This gets called when Start and Stop GPS button is pressed
             function toggleTracking_{{ this.get_name() }}() {
                 if (isTracking_{{ this.get_name() }}) {
                     stopTracking_{{ this.get_name() }}();
@@ -132,18 +158,21 @@ class GPSTrackingControl(MacroElement):
                 }
             }
 
-            // Styling for GPSControl on the map
+            // For creating the leaflet control (the buttons)
+            // L.Control.extend() is leaflet's way to create a custom map controls
             var GPSControl_{{ this.get_name() }} = L.Control.extend({
                 options: {
-                    position: 'bottomleft'
+                    position: 'bottomleft' // Where to place on map
                 },
-                onAdd: function(map) {
+                onAdd: function(map) { // Function to create the UI
+                    // L.DomUtil.create('div', ...) Creates a <div> element
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    // Styling of the container
                     container.style.background = 'white';
                     container.style.padding = '10px';
                     container.style.borderRadius = '5px';
                     container.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
-
+                    // Add buttons and display elements
                     container.innerHTML = `
                         <div style="margin-bottom: 5px;">
                             <button onclick="toggleTracking_{{ this.get_name() }}()" 
@@ -158,12 +187,12 @@ class GPSTrackingControl(MacroElement):
                         <div id="trackingStatus_{{ this.get_name() }}" style="font-weight: bold; margin-top: 5px;">⚪ Not Tracking</div>
                         <div id="coordinates_{{ this.get_name() }}" style="font-size: 12px; margin-top: 5px; color: #666;"></div>
                     `;
-
+                    // Without this clicking buttons would also click the map behind them
                     L.DomEvent.disableClickPropagation(container);
                     return container;
                 }
             });
-
+            // Creates instance of the control then adds it to the map
             {{ this._parent.get_name() }}.addControl(new GPSControl_{{ this.get_name() }}());
         {% endmacro %}
     """)
