@@ -3,7 +3,6 @@ import folium
 import streamlit as st
 import streamlit_folium as st_folium
 from folium.plugins import Draw
-
 from gps_tracking_control import GPSTrackingControl
 
 # Config for app layout on web
@@ -22,6 +21,7 @@ if 'pending_name' not in st.session_state:
 # Stores the unique shape ids
 if 'processed_shape_ids' not in st.session_state:
     st.session_state.processed_shape_ids = set()
+
 
 m = folium.Map(zoom_start=12)
 

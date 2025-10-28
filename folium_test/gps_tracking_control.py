@@ -92,6 +92,7 @@ class GPSTrackingControl(MacroElement):
                                 opacity: 0.7 // Opacity
                             }).addTo({{ this._parent.get_name() }}); // Add layer to map
                         }
+                        
                         // Move map to center on user position
                         // getZoom Keeps current zoom level
                         {{ this._parent.get_name() }}.setView([lat, lng], {{ this._parent.get_name() }}.getZoom());
