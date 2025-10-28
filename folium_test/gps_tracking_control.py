@@ -63,13 +63,7 @@ class GPSTrackingControl(MacroElement):
                         locationMarker_{{ this.get_name() }} = L.marker([lat, lng], { // Creates a leaflet marker at user coordinates
                             icon: L.divIcon({ // Custom icon
                                 className: 'custom-location-marker',
-                                html: '<div style="
-                                                background-color: #2A93EE; // Color blue
-                                                width: 16px; height: 16px; // 16x16 pixel circle
-                                                border-radius: 50%; // Border radius (obviously)
-                                                border: 3px solid white;
-                                                box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                                        "></div>',
+                                html: '<div style="background-color: #2A93EE;width: 16px; height: 16px; border-radius: 50%; border: 3px solid white;box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
                                 iconSize: [16, 16],
                                 iconAnchor: [8, 8]
                             })
