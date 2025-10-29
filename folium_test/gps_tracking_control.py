@@ -109,8 +109,14 @@ class GPSTrackingControl(MacroElement):
                             '<br>Accuracy: ±' + accuracy.toFixed(0) + 'm';
                         
                         
-                        count_{{ this.get_name() }}++;
-                        alert(count_{{ this.get_name() }});
+                        if ({{ this.get_state_len() }} > 0) {
+                            var haversine_result = {{ this.haversine(lat, lng, this.get_shape_lat(), this.get_shape_lon(), this.get_radius()) }}
+                            if(haversine_result > {{ this.get_radius() }}) {
+                                alert("Outside Fence");
+                            } else {
+                                alert("Inside Fence");
+                            }
+                        }
                     },
                     // This gets called if:
                         // User denies location permission
@@ -206,19 +212,14 @@ class GPSTrackingControl(MacroElement):
         # Calls the parent class and passed GPSTrackingControl as argument(the Element)
         super(GPSTrackingControl, self).__init__()
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
-
-        try:
+        self._state_len = len(state)
+        if self._state_len > 0:
             self._radius = state[0].get('properties', {})['radius']
             self._shape_lat = state[0].get('geometry', {})[0]
             self._shape_lon = state[0].get('geometry', {})[1]
-        except IndexError as e:
-            self._radius = 0
-            self._shape_lat = 0
-            self._shape_lon = 0
 
-    def hi(self, k):
-        print(k)
-
+    def get_state_len(self):
+        return self._state_len
 
     def get_radius(self):
         return self._radius
