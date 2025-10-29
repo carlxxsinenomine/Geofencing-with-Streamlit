@@ -1,3 +1,6 @@
+import math
+
+
 from branca.element import MacroElement, Template
 
 class GPSTrackingControl(MacroElement):
@@ -15,7 +18,11 @@ class GPSTrackingControl(MacroElement):
             var isTracking_{{ this.get_name() }} = false;
             // ID to stop GPS tracking
             var watchId_{{ this.get_name() }} = null;
-
+            
+            // for debugging
+            var count_{{ this.get_name() }} = 0;
+            
+            
             // When the user toggled the START GPS button this gets called
             function startTracking_{{ this.get_name() }}() {
                 // Check if supported ba ng browser
@@ -47,7 +54,6 @@ class GPSTrackingControl(MacroElement):
                         var lat = position.coords.latitude;
                         var lng = position.coords.longitude;
                         var accuracy = position.coords.accuracy;
-                        
                         // Removes marker everytime the user coordinates updated
                         // So that there is only one marker that moves
                         // this._parent = The map that contains this control; the current folium map instance
@@ -101,6 +107,10 @@ class GPSTrackingControl(MacroElement):
                         document.getElementById('coordinates_{{ this.get_name() }}').innerHTML = 
                             'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) + 
                             '<br>Accuracy: ±' + accuracy.toFixed(0) + 'm';
+                        
+                        
+                        count_{{ this.get_name() }}++;
+                        alert(count_{{ this.get_name() }});
                     },
                     // This gets called if:
                         // User denies location permission
@@ -192,7 +202,49 @@ class GPSTrackingControl(MacroElement):
         {% endmacro %}
     """)
 
-    def __init__(self):
+    def __init__(self, state):
         # Calls the parent class and passed GPSTrackingControl as argument(the Element)
         super(GPSTrackingControl, self).__init__()
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
+
+        try:
+            self._radius = state[0].get('properties', {})['radius']
+            self._shape_lat = state[0].get('geometry', {})[0]
+            self._shape_lon = state[0].get('geometry', {})[1]
+        except IndexError as e:
+            self._radius = 0
+            self._shape_lat = 0
+            self._shape_lon = 0
+
+    def hi(self, k):
+        print(k)
+
+
+    def get_radius(self):
+        return self._radius
+
+    def get_shape_lat(self):
+        return self._shape_lat
+
+    def get_shape_lon(self):
+        return self._shape_lon
+
+    # Haversine formula to find distance between two points on a sphere
+    # https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
+    def haversine(self, lat1, lon1, lat2, lon2, radius):
+        # distance between latitudes
+        # and longitudes
+        dLat = (lat2 - lat1) * math.pi / 180.0
+        dLon = (lon2 - lon1) * math.pi / 180.0
+
+        # convert to radians
+        lat1 = (lat1) * math.pi / 180.0
+        lat2 = (lat2) * math.pi / 180.0
+
+        # apply formulae
+        a = (pow(math.sin(dLat / 2), 2) +
+             pow(math.sin(dLon / 2), 2) *
+             math.cos(lat1) * math.cos(lat2));
+        rad = radius
+        c = 2 * math.asin(math.sqrt(a))
+        return rad * c

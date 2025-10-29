@@ -25,27 +25,6 @@ if 'processed_shape_ids' not in st.session_state:
 
 m = folium.Map(zoom_start=12)
 
-
-# Haversine formula to find distance between two points on a sphere
-# https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
-def haversine(lat1, lon1, lat2, lon2):
-    # distance between latitudes
-    # and longitudes
-    dLat = (lat2 - lat1) * math.pi / 180.0
-    dLon = (lon2 - lon1) * math.pi / 180.0
-
-    # convert to radians
-    lat1 = (lat1) * math.pi / 180.0
-    lat2 = (lat2) * math.pi / 180.0
-
-    # apply formulae
-    a = (pow(math.sin(dLat / 2), 2) +
-         pow(math.sin(dLon / 2), 2) *
-         math.cos(lat1) * math.cos(lat2));
-    rad = 6371
-    c = 2 * math.asin(math.sqrt(a))
-    return rad * c
-
 # Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
     try:
@@ -190,7 +169,7 @@ drawn_shapes = Draw(
 # Add shapes to map
 add_shapes_to_map()
 
-gps_control = GPSTrackingControl()
+gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
 
 # Layout for widgets in col
