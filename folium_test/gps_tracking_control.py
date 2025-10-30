@@ -6,6 +6,17 @@ from branca.element import MacroElement, Template
 class GPSTrackingControl(MacroElement):
     _template = Template("""
         {% macro script(this, kwargs) %}
+        
+            // Load Turf.js library from CDN
+            var turfLoaded_{{ this.get_name() }} = false;
+            var turfScript_{{ this.get_name() }} = document.createElement('script');
+            turfScript_{{ this.get_name() }}.src = "https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js";
+            turfScript_{{ this.get_name() }}.onload = function() {
+                console.log('Turf.js loaded successfully');
+                turfLoaded_{{ this.get_name() }} = true;
+            };
+            document.head.appendChild(turfScript_{{ this.get_name() }});
+            
             // Blue dot on map
             var locationMarker_{{ this.get_name() }} = null;
             // Circle showing accuracy
@@ -19,8 +30,35 @@ class GPSTrackingControl(MacroElement):
             // ID to stop GPS tracking
             var watchId_{{ this.get_name() }} = null;
             
-            // for debugging
-            var count_{{ this.get_name() }} = 0;
+            // Geofence data from Python
+            var fenceData_{{ this.get_name() }} = {
+                radius: {{ this.get_radius() }},
+                lat: {{ this.get_shape_lat() }},
+                lon: {{ this.get_shape_lon() }}
+            };
+            
+            function isPointInsideCircle_{{ this.get_name() }}(userCoordinates, shapeCoordinates, shapeRadius) {
+                var userLat = userCoordinates[0];
+                var userLng = userCoordinates[1];
+                
+                var shapeLat = shapeCoordinates[0];
+                var shapeLng = shapeCoordinates[1];
+                
+                let dLat = (shapeLat - userLat) * Math.PI / 180.0;
+                let dLng = (shapeLng - userLng) * Math.PI / 180.0;
+                
+                userLat = (userLat) * Math.PI / 180.0;
+                shapeLat = (shapeLat) * Math.PI / 180.0;
+                
+                let a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLng / 2), 2) * Math.cos(userLat) * Math.cos(shapeLat);
+                let c = 2 * Math.asin(Math.sqrt(a));
+                
+                if(c > shapeRadius) {
+                    return true;
+                }
+                
+                return false;
+            }
             
             
             // When the user toggled the START GPS button this gets called
@@ -107,16 +145,6 @@ class GPSTrackingControl(MacroElement):
                         document.getElementById('coordinates_{{ this.get_name() }}').innerHTML = 
                             'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) + 
                             '<br>Accuracy: ±' + accuracy.toFixed(0) + 'm';
-                        
-                        
-                        if ({{ this.get_state_len() }} > 0) {
-                            var haversine_result = {{ this.haversine(lat, lng, this.get_shape_lat(), this.get_shape_lon(), this.get_radius()) }}
-                            if(haversine_result > {{ this.get_radius() }}) {
-                                alert("Outside Fence");
-                            } else {
-                                alert("Inside Fence");
-                            }
-                        }
                     },
                     // This gets called if:
                         // User denies location permission
@@ -213,39 +241,18 @@ class GPSTrackingControl(MacroElement):
         super(GPSTrackingControl, self).__init__()
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
         self._state_len = len(state)
+        # Initialize default values
+        self._radius = None
+        self._shape_lat = None
+        self._shape_lon = None
+
+        # Only set these if state has data
         if self._state_len > 0:
-            self._radius = state[0].get('properties', {})['radius']
-            self._shape_lat = state[0].get('geometry', {})[0]
-            self._shape_lon = state[0].get('geometry', {})[1]
-
-    def get_state_len(self):
-        return self._state_len
-
-    def get_radius(self):
-        return self._radius
-
-    def get_shape_lat(self):
-        return self._shape_lat
-
-    def get_shape_lon(self):
-        return self._shape_lon
-
-    # Haversine formula to find distance between two points on a sphere
-    # https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
-    def haversine(self, lat1, lon1, lat2, lon2, radius):
-        # distance between latitudes
-        # and longitudes
-        dLat = (lat2 - lat1) * math.pi / 180.0
-        dLon = (lon2 - lon1) * math.pi / 180.0
-
-        # convert to radians
-        lat1 = (lat1) * math.pi / 180.0
-        lat2 = (lat2) * math.pi / 180.0
-
-        # apply formulae
-        a = (pow(math.sin(dLat / 2), 2) +
-             pow(math.sin(dLon / 2), 2) *
-             math.cos(lat1) * math.cos(lat2));
-        rad = radius
-        c = 2 * math.asin(math.sqrt(a))
-        return rad * c
+            self._radius = state[0].get('properties', {}).get('radius', None)
+            geometry = state[0].get('geometry', {})
+            self._shape_lat = geometry.get('coordinates')[0]
+            self._shape_lon = geometry.get('coordinates')[1]
+            # Handle both list and dict geometry formats
+            # if isinstance(geometry, (list, tuple)) and len(geometry) >= 2:
+            #     self._shape_lat = geometry[0]
+            #     self._shape_lon = geometry[1]
