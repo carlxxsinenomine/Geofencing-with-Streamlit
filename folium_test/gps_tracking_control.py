@@ -30,13 +30,6 @@ class GPSTrackingControl(MacroElement):
             // ID to stop GPS tracking
             var watchId_{{ this.get_name() }} = null;
             
-            // Geofence data from Python
-            var fenceData_{{ this.get_name() }} = {
-                radius: {{ this.get_radius() }},
-                lat: {{ this.get_shape_lat() }},
-                lon: {{ this.get_shape_lon() }}
-            };
-            
             function isPointInsideCircle_{{ this.get_name() }}(userCoordinates, shapeCoordinates, shapeRadius) {
                 var userLat = userCoordinates[0];
                 var userLng = userCoordinates[1];
@@ -58,6 +51,33 @@ class GPSTrackingControl(MacroElement):
                 }
                 
                 return false;
+            }
+            
+            function isPointInPolygon_{{ this.get_name() }}(userLat, userLng, polygonCoordinates) {
+                if (!turfLoaded_{{ this.get_name() }} || typeof turf === 'undefined') {
+                        console.log("Turf.js not loaded yet");
+                        return false;
+                    }
+                
+                var userCoordinates = turf.point([userLng, userLat]);
+                
+                // Convert Leaflet coordinates to GeoJSON format [lng, lat]
+                var geoJsonCoords = polygonCoordinates.map(function(coord) {
+                    return [coord.lng, coord.lat];
+                });
+                
+                if (geoJsonCoords[0][0] !== geoJsonCoords[geoJsonCoords.length - 1][0] ||
+                    geoJsonCoords[0][1] !== geoJsonCoords[geoJsonCoords.length - 1][1]) {
+                    geoJsonCoords.push(geoJsonCoords[0]);
+                }
+                
+                // Create polygon
+                var polygon = turf.polygon([geoJsonCoords]);
+                
+                // Check if point is inside polygon
+                var isInside = turf.booleanPointInPolygon(point, polygon);
+                                
+                return isInside;
             }
             
             
@@ -241,17 +261,15 @@ class GPSTrackingControl(MacroElement):
         super(GPSTrackingControl, self).__init__()
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
         self._state_len = len(state)
-        # Initialize default values
-        self._radius = None
-        self._shape_lat = None
-        self._shape_lon = None
+        self.drawn_shapes = None
 
         # Only set these if state has data
         if self._state_len > 0:
-            self._radius = state[0].get('properties', {}).get('radius', None)
-            geometry = state[0].get('geometry', {})
-            self._shape_lat = geometry.get('coordinates')[0]
-            self._shape_lon = geometry.get('coordinates')[1]
+            self.drawn_shapes = state
+            # self._radius = state[0].get('properties', {}).get('radius', None)
+            # geometry = state[0].get('geometry', {})
+            # self._shape_lat = geometry.get('coordinates')[0]
+            # self._shape_lon = geometry.get('coordinates')[1]
             # Handle both list and dict geometry formats
             # if isinstance(geometry, (list, tuple)) and len(geometry) >= 2:
             #     self._shape_lat = geometry[0]
