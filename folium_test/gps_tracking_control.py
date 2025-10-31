@@ -38,24 +38,21 @@ class GPSTrackingControl(MacroElement):
             function isPointInsideCircle_{{ this.get_name() }}(userCoordinates, shapeCoordinates, shapeRadius) {
                 var userLat = userCoordinates[0];
                 var userLng = userCoordinates[1];
-                
-                var shapeLat = shapeCoordinates[1];
+                var shapeLat = shapeCoordinates[1]; 
                 var shapeLng = shapeCoordinates[0];
                 
-                let dLat = (shapeLat - userLat) * Math.PI / 180.0;
-                let dLng = (shapeLng - userLng) * Math.PI / 180.0;
+                var R = 6371000; // Earth's radius in meters
+                var dLat = (shapeLat - userLat) * Math.PI / 180;
+                var dLng = (shapeLng - userLng) * Math.PI / 180;
                 
-                userLat = (userLat) * Math.PI / 180.0;
-                shapeLat = (shapeLat) * Math.PI / 180.0;
+                var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(userLat * Math.PI / 180) * Math.cos(shapeLat * Math.PI / 180) *
+                        Math.sin(dLng/2) * Math.sin(dLng/2);
                 
-                let a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLng / 2), 2) * Math.cos(userLat) * Math.cos(shapeLat);
-                let c = 2 * Math.asin(Math.sqrt(a));
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                var distance = R * c;
                 
-                if(c > shapeRadius) {
-                    return true;
-                }
-                
-                return false;
+                return distance <= shapeRadius;
             }
             
             function isPointInPolygon_{{ this.get_name() }}(userLat, userLng, polygonCoordinates) {
@@ -81,7 +78,49 @@ class GPSTrackingControl(MacroElement):
             }
             
             function isPointInsideGeofence_{{ this.get_name() }}(userLng, userLat) {
+                if (!isThereFences_{{ this.get_name() }} || !drawnShapes_{{ this.get_name() }}) {
+                    return false;
+                }
                 
+                var userLat = parseFloat(userLat);
+                var userLng = parseFloat(userLng);
+                
+                for(var i = 0; i < drawnShapes_{{ this.get_name() }}.length; i++) {
+                    var shape = drawnShapes_{{ this.get_name() }}[i];
+                    var geometry = shape.geometry;
+                    var properties = shape.properties || {};
+                    
+                    if (!geometry) continue;
+                    
+                    var isInside = false;
+                    
+                    switch(geometry.type) {
+                        case 'Point':
+                            var centerLng = geometry.coordinates[0];
+                            var centerLat = geometry.coordinates[1];
+                            var radius = properties.radius || 0;
+                            
+                            if (radius > 0) {
+                                isInside = isPointInsideCircle_{{ this.get_name() }}(
+                                    [userLat, userLng], 
+                                    [centerLng, centerLat], 
+                                    radius
+                                );
+                            }
+                            break;
+                            
+                        case 'Polygon':
+                            var coordinates = geometry.coordinates[0]; // First ring (exterior)
+                            isInside = isPointInPolygon_{{ this.get_name() }}(userLat, userLng, coordinates);
+                            break;
+                    }
+                    if (isInside) {
+                        console.log('Point is inside fence:', properties.name || 'Unnamed fence');
+                        return true;
+                    }
+                }
+                
+                return false;
             }
             
             // When the user toggled the START GPS button this gets called
@@ -115,6 +154,14 @@ class GPSTrackingControl(MacroElement):
                         var lat = position.coords.latitude;
                         var lng = position.coords.longitude;
                         var accuracy = position.coords.accuracy;
+                        
+                        var isInsideFence = isPointInsideGeofence_{{ this.get_name() }}(lng, lat);
+    
+                        if (isInsideFence) {
+                            alert("user inside fence");
+                        }
+                        
+                        
                         // Removes marker everytime the user coordinates updated
                         // So that there is only one marker that moves
                         // this._parent = The map that contains this control; the current folium map instance
