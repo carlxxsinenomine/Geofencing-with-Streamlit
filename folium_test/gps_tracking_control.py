@@ -1,6 +1,3 @@
-import math
-
-
 from branca.element import MacroElement, Template
 
 class GPSTrackingControl(MacroElement):
@@ -30,12 +27,20 @@ class GPSTrackingControl(MacroElement):
             // ID to stop GPS tracking
             var watchId_{{ this.get_name() }} = null;
             
+            var drawnShapes_{{ this.get_name() }} = null;
+            var isThereFences_{{ this.get_name() }} = false;
+            
+            {% if this.drawn_shapes %}
+            drawnShapes_{{ this.get_name() }} = {{ this.drawn_shapes | tojson }};
+            isThereFences_{{ this.get_name() }} = true;
+            {% endif %}
+            
             function isPointInsideCircle_{{ this.get_name() }}(userCoordinates, shapeCoordinates, shapeRadius) {
                 var userLat = userCoordinates[0];
                 var userLng = userCoordinates[1];
                 
-                var shapeLat = shapeCoordinates[0];
-                var shapeLng = shapeCoordinates[1];
+                var shapeLat = shapeCoordinates[1];
+                var shapeLng = shapeCoordinates[0];
                 
                 let dLat = (shapeLat - userLat) * Math.PI / 180.0;
                 let dLng = (shapeLng - userLng) * Math.PI / 180.0;
@@ -61,25 +66,23 @@ class GPSTrackingControl(MacroElement):
                 
                 var userCoordinates = turf.point([userLng, userLat]);
                 
-                // Convert Leaflet coordinates to GeoJSON format [lng, lat]
-                var geoJsonCoords = polygonCoordinates.map(function(coord) {
-                    return [coord.lng, coord.lat];
-                });
-                
-                if (geoJsonCoords[0][0] !== geoJsonCoords[geoJsonCoords.length - 1][0] ||
-                    geoJsonCoords[0][1] !== geoJsonCoords[geoJsonCoords.length - 1][1]) {
-                    geoJsonCoords.push(geoJsonCoords[0]);
+                if (polygonCoordinates[0][0] !== polygonCoordinates[polygonCoordinates.length - 1][0] ||
+                    polygonCoordinates[0][1] !== polygonCoordinates[polygonCoordinates.length - 1][1]) {
+                    polygonCoordinates.push(polygonCoordinates[0]);
                 }
                 
                 // Create polygon
-                var polygon = turf.polygon([geoJsonCoords]);
+                var polygon = turf.polygon([polygonCoordinates]);
                 
                 // Check if point is inside polygon
-                var isInside = turf.booleanPointInPolygon(point, polygon);
+                var isInside = turf.booleanPointInPolygon(userCoordinates, polygon);
                                 
                 return isInside;
             }
             
+            function isPointInsideGeofence_{{ this.get_name() }}(userLng, userLat) {
+                
+            }
             
             // When the user toggled the START GPS button this gets called
             function startTracking_{{ this.get_name() }}() {
@@ -261,16 +264,12 @@ class GPSTrackingControl(MacroElement):
         super(GPSTrackingControl, self).__init__()
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
         self._state_len = len(state)
-        self.drawn_shapes = None
+        self.drawn_shapes = state or []
 
-        # Only set these if state has data
-        if self._state_len > 0:
-            self.drawn_shapes = state
-            # self._radius = state[0].get('properties', {}).get('radius', None)
-            # geometry = state[0].get('geometry', {})
-            # self._shape_lat = geometry.get('coordinates')[0]
-            # self._shape_lon = geometry.get('coordinates')[1]
-            # Handle both list and dict geometry formats
-            # if isinstance(geometry, (list, tuple)) and len(geometry) >= 2:
-            #     self._shape_lat = geometry[0]
-            #     self._shape_lon = geometry[1]
+
+
+    def get_state_len(self):
+        return self._state_len > 0
+
+    def get_drawn_shapes(self):
+        return self.drawn_shapes
