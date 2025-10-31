@@ -1,8 +1,7 @@
-import math
 import folium
 import streamlit as st
 import streamlit_folium as st_folium
-from folium.plugins import Draw
+from folium.plugins import Draw, Fullscreen
 from gps_tracking_control import GPSTrackingControl
 
 st.set_page_config(
@@ -53,7 +52,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 m = folium.Map(zoom_start=12)
-
+Fullscreen(
+    position='topright',
+    title='Expand me bitch',
+    title_cancel='Exit kana?',
+    force_separate_button=True
+).add_to(m)
 
 # Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
