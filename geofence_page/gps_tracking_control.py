@@ -312,11 +312,3 @@ class GPSTrackingControl(MacroElement):
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
         self._state_len = len(state)
         self.drawn_shapes = state or []
-
-
-
-    def get_state_len(self):
-        return self._state_len > 0
-
-    def get_drawn_shapes(self):
-        return self.drawn_shapes
