@@ -14,7 +14,7 @@ class GPSTrackingControl(MacroElement):
             };
             document.head.appendChild(turfScript_{{ this.get_name() }});
             
-            // Blue dot on map
+            // Blue dot on maps
             var locationMarker_{{ this.get_name() }} = null;
             // Circle showing accuracy
             var accuracyCircle_{{ this.get_name() }} = null;
@@ -164,9 +164,9 @@ class GPSTrackingControl(MacroElement):
                         
                         // Removes marker everytime the user coordinates updated
                         // So that there is only one marker that moves
-                        // this._parent = The map that contains this control; the current folium map instance
-                        // When you create the map in Python; m = folium.Map(zoom_start=12)
-                        // Internally, Folium assigns it a unique JavaScript variable name like; var map_abc123 = L.map(...);
+                        // this._parent = The maps that contains this control; the current folium maps instance
+                        // When you create the maps in Python; m = folium.Map(zoom_start=12)
+                        // Internally, Folium assigns it a unique JavaScript variable name like; var map_abc123 = L.maps(...);
                         if (locationMarker_{{ this.get_name() }}) {
                             {{ this._parent.get_name() }}.removeLayer(locationMarker_{{ this.get_name() }});
                         }
@@ -181,7 +181,7 @@ class GPSTrackingControl(MacroElement):
                                 iconSize: [16, 16],
                                 iconAnchor: [8, 8]
                             })
-                        }).addTo({{ this._parent.get_name() }}); // Add to the map; the m instance created in python
+                        }).addTo({{ this._parent.get_name() }}); // Add to the maps; the m instance created in python
 
                         // This one's for the accuracy circle
                         accuracyCircle_{{ this.get_name() }} = L.circle([lat, lng], {
@@ -190,24 +190,24 @@ class GPSTrackingControl(MacroElement):
                             fillColor: '#2A93EE',
                             fillOpacity: 0.15,
                             weight: 2
-                        }).addTo({{ this._parent.get_name() }}); // Same as before, add to map
+                        }).addTo({{ this._parent.get_name() }}); // Same as before, add to maps
 
                         // Store user coordinate in array; gagamitin for trailing or pathLine
                         pathCoordinates_{{ this.get_name() }}.push([lat, lng]);
-                        // Remove old point layers from map
+                        // Remove old point layers from maps
                         // Then redraw kasama nung old points to create a trail or path
                         if (pathLine_{{ this.get_name() }}) {
                             {{ this._parent.get_name() }}.removeLayer(pathLine_{{ this.get_name() }});
                         }
                         if (pathCoordinates_{{ this.get_name() }}.length > 1) { // Meaning there are multiple points
-                            pathLine_{{ this.get_name() }} = L.polyline(pathCoordinates_{{ this.get_name() }}, { // Create a polyline layer on the map, pass the pathCoordinate array
+                            pathLine_{{ this.get_name() }} = L.polyline(pathCoordinates_{{ this.get_name() }}, { // Create a polyline layer on the maps, pass the pathCoordinate array
                                 color: 'blue', // Color of trail or pathLine
                                 weight: 3, // Weight HAHAHAH
                                 opacity: 0.7 // Opacity
-                            }).addTo({{ this._parent.get_name() }}); // Add layer to map
+                            }).addTo({{ this._parent.get_name() }}); // Add layer to maps
                         }
                         
-                        // Move map to center on user position
+                        // Move maps to center on user position
                         // getZoom Keeps current zoom level
                         {{ this._parent.get_name() }}.setView([lat, lng], {{ this._parent.get_name() }}.getZoom());
                         
@@ -268,12 +268,12 @@ class GPSTrackingControl(MacroElement):
             }
 
             // For creating the leaflet control (the buttons)
-            // L.Control.extend() is leaflet's way to create a custom map controls
+            // L.Control.extend() is leaflet's way to create a custom maps controls
             var GPSControl_{{ this.get_name() }} = L.Control.extend({
                 options: {
-                    position: 'bottomleft' // Where to place on map
+                    position: 'bottomleft' // Where to place on maps
                 },
-                onAdd: function(map) { // Function to create the UI
+                onAdd: function(maps) { // Function to create the UI
                     // L.DomUtil.create('div', ...) Creates a <div> element
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                     // Styling of the container
@@ -296,12 +296,12 @@ class GPSTrackingControl(MacroElement):
                         <div id="trackingStatus_{{ this.get_name() }}" style="font-weight: bold; margin-top: 5px;">⚪ Not Tracking</div>
                         <div id="coordinates_{{ this.get_name() }}" style="font-size: 12px; margin-top: 5px; color: #666;"></div>
                     `;
-                    // Without this clicking buttons would also click the map behind them
+                    // Without this clicking buttons would also click the maps behind them
                     L.DomEvent.disableClickPropagation(container);
                     return container;
                 }
             });
-            // Creates instance of the control then adds it to the map
+            // Creates instance of the control then adds it to the maps
             {{ this._parent.get_name() }}.addControl(new GPSControl_{{ this.get_name() }}());
         {% endmacro %}
     """)

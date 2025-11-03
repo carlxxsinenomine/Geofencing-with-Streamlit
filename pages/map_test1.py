@@ -2,8 +2,11 @@ import folium
 import streamlit as st
 import streamlit_folium as st_folium
 from folium.plugins import Draw, Fullscreen
-from gps_tracking_control import GPSTrackingControl
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from map.gps_tracking_control import GPSTrackingControl
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -20,8 +23,8 @@ if 'processed_shape_ids' not in st.session_state:
 
 st.markdown("""
 <style>
-    /* Responsive map container */
-    .map-container {
+    /* Responsive maps container */
+    .maps-container {
         position: relative;
         width: 100%;
         height: 60vh;
@@ -153,7 +156,7 @@ def get_drawing_id(drawing):
     return f"{geom_type}_{hash(coords)}"
 
 
-# Draw plugin for drawing shapes on map layer
+# Draw plugin for drawing shapes on maps layer
 drawn_shapes = Draw(
     export=False,
     show_geometry_on_click=True,
@@ -177,7 +180,7 @@ with map_col:
     with st.container():
         st.markdown("### Map")
         map_width = min(800, st.session_state.get('screen_width', 725))
-        st_data = st_folium.st_folium(m, width=None, height=500, key="map")
+        st_data = st_folium.st_folium(m, width=None, height=500, key="maps")
 
 with output_col:
     st.markdown("### Controls & Information")
@@ -235,7 +238,7 @@ with output_col:
             with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
                 st.code(str(shape), language='json')
     else:
-        st.info("No shapes drawn yet. Draw a shape on the map to get started!")
+        st.info("No shapes drawn yet. Draw a shape on the maps to get started!")
 
     with st.expander("Raw All Drawings Data"):
         st.code(str(all_drawings), language='json')
