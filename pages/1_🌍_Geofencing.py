@@ -8,10 +8,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from map.gps_tracking_control import GPSTrackingControl
 st.set_page_config(
+    page_title="Map",
+    page_icon="🌍",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
+st.sidebar.header("Map")
 st.title("Geofence Feature")
 
 if 'named_shapes' not in st.session_state:
