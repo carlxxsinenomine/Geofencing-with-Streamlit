@@ -6,7 +6,6 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-uri = "mongodb+srv://carlxxsinenomine:Gratulationes11@cluster-1.c0ljmfq.mongodb.net/?appName=Cluster-1"
 
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
