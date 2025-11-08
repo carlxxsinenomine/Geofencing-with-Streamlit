@@ -14,8 +14,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.sidebar.header("Map")
-st.title("Geofence Feature")
+# st.sidebar.header("Map")
+# st.title("Geofence Feature")
 
 if 'named_shapes' not in st.session_state:
     st.session_state.named_shapes = []
