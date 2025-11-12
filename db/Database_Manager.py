@@ -8,6 +8,19 @@
 import streamlit as st
 import pymongo
 
+class DatabaseManager:
+    def init_connection(self):
+        pass
+
+    def load_database(self):
+        pass
+
+    def insert_data(self):
+        pass
+
+    def delete_data(self):
+        pass
+
 @st.cache_resource
 def init_connection():
     return pymongo.MongoClient(st.secrets["mongo"])
