@@ -2,6 +2,8 @@ import folium
 import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
+from bson import ObjectId
+import json
 from folium.plugins import Draw, Fullscreen
 
 import sys, os
@@ -27,8 +29,6 @@ client = init_connection()
 geo_db = client.geospatial_data
 shapes = geo_db.shapes
 
-shapes.create_index([("geometry", "2dsphere")])
-#
 # geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
 #
 # # Insert the document
@@ -170,13 +170,15 @@ def save_properties(is_named, drawing):
         del drawing_to_save['_id']
 
     try:
-        shapes.insert_one(drawing_to_save)
-        # drawing_to_save['_id'] = result.inserted_id
+        result = shapes.insert_one(drawing_to_save)
+        # Don't store ObjectId in session state (causes JSON serialization errors)
+        drawing_to_save['_id'] = str(result.inserted_id)
     except Exception as e:
         st.error(f"Error saving to database: {e}")
         return
 
-    st.session_state.named_shapes.append(drawing)
+    # Save to session_state
+    st.session_state.named_shapes.append(drawing_to_save)
     st.session_state.processed_shape_ids.add(shape_id)
     st.session_state.pending_name = False
 
