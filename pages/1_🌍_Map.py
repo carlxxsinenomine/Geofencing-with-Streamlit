@@ -1,17 +1,12 @@
 import folium
-import db.Database_Manager
-
+import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
 from folium.plugins import Draw, Fullscreen
 
 import sys, os
 
-from db.Database_Manager import DatabaseManager
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-dm = DatabaseManager()
 
 from map.gps_tracking_control import GPSTrackingControl
 st.set_page_config(
@@ -21,6 +16,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+@st.cache_resource
+def init_connection():
+    return pymongo.MongoClient(st.secrets["mongo"])
+
+
+client = init_connection()
+geo_db = client.geospatial_data
+shapes = geo_db.shapes
+
+shapes.create_index([("geometry", "2dsphere")])
+#
+# geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
+#
+# # Insert the document
+# result = shapes.insert_one(geojson_data)
+# print(f"Inserted document with ID: {result.inserted_id}")
 # st.sidebar.header("Map")
 # st.title("Geofence Feature")
 
@@ -152,6 +163,17 @@ def save_properties(is_named, drawing):
     shape_id = f"{drawing['geometry']['type']}_{len(st.session_state.named_shapes)}"
     drawing['properties']['shape_id'] = shape_id
 
+    drawing_to_save = drawing.copy()
+    if '_id' in drawing_to_save:
+        del drawing_to_save['_id']
+
+    try:
+        shapes.insert_one(drawing_to_save)
+        # drawing_to_save['_id'] = result.inserted_id
+    except Exception as e:
+        st.error(f"Error saving to database: {e}")
+        return
+
     st.session_state.named_shapes.append(drawing)
     st.session_state.processed_shape_ids.add(shape_id)
     st.session_state.pending_name = False
@@ -237,7 +259,6 @@ with output_col:
             with col2:
                 if st.button("Skip", use_container_width=True):
                     save_properties(False, latest_drawing)
-                    dm.insert_data(latest_drawing)
 
     st.subheader("Named Shapes")
     if st.session_state.named_shapes:
