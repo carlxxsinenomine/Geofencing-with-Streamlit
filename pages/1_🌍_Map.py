@@ -29,8 +29,8 @@ st.set_page_config(
 # shapes = geo_db.shapes
 
 
-for shape in shapes.find():
-    print(shape)
+# for shape in shapes.find():
+#     print(shape)
 # geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
 #
 # # Insert the document
