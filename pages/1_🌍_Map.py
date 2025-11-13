@@ -19,14 +19,14 @@ st.set_page_config(
 )
 
 # MongoDB configuration
-@st.cache_resource
-def init_connection():
-    return pymongo.MongoClient(st.secrets["mongo"])
-
+# @st.cache_resource
+# def init_connection():
+#     return pymongo.MongoClient(st.secrets["mongo"])
+#
 
 # client = init_connection()
-geo_db = client.geospatial_data
-shapes = geo_db.shapes
+# geo_db = client.geospatial_data
+# shapes = geo_db.shapes
 
 
 for shape in shapes.find():
