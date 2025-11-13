@@ -41,12 +41,7 @@ for shape in shapes.find():
 # st.title("Geofence Feature")
 
 if 'named_shapes' not in st.session_state:
-    st.session_state.named_shapes = [{
-        'type': shape.type,
-        'properties': shape.properties,
-        'geometry': shape.geometry,
-
-    } for shape in shapes.find()]
+    st.session_state.named_shapes = []
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
