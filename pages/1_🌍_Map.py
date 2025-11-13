@@ -2,8 +2,7 @@ import folium
 import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
-from bson import ObjectId
-import json
+
 from folium.plugins import Draw, Fullscreen
 
 import sys, os
