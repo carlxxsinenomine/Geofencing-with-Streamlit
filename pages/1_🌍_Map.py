@@ -29,6 +29,9 @@ client = init_connection()
 geo_db = client.geospatial_data
 shapes = geo_db.shapes
 
+
+for shape in shapes.find():
+    print(shape)
 # geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
 #
 # # Insert the document
@@ -38,7 +41,12 @@ shapes = geo_db.shapes
 # st.title("Geofence Feature")
 
 if 'named_shapes' not in st.session_state:
-    st.session_state.named_shapes = []
+    st.session_state.named_shapes = [{
+        'type': shape.type,
+        'properties': shape.properties,
+        'geometry': shape.geometry,
+
+    } for shape in shapes.find()]
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
@@ -171,7 +179,6 @@ def save_properties(is_named, drawing):
 
     try:
         result = shapes.insert_one(drawing_to_save)
-        # Don't store ObjectId in session state (causes JSON serialization errors)
         drawing_to_save['_id'] = str(result.inserted_id)
     except Exception as e:
         st.error(f"Error saving to database: {e}")
