@@ -9,6 +9,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from map.gps_tracking_control import GPSTrackingControl
+
 st.set_page_config(
     page_title="Map",
     page_icon="🌍",
@@ -16,6 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# MongoDB configuration
 @st.cache_resource
 def init_connection():
     return pymongo.MongoClient(st.secrets["mongo"])
@@ -199,6 +201,10 @@ drawn_shapes = Draw(
         'polyline': False,
         'circlemarker': False,
         'marker': False,
+    },
+    edit_options={
+        'edit': False,
+        'remove': False
     }
 ).add_to(m)
 
