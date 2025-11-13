@@ -1,5 +1,5 @@
 import folium
-# import pymongo
+import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
 
@@ -19,18 +19,18 @@ st.set_page_config(
 )
 
 # MongoDB configuration
-# @st.cache_resource
-# def init_connection():
-#     return pymongo.MongoClient(st.secrets["mongo"])
-#
-
-# client = init_connection()
-# geo_db = client.geospatial_data
-# shapes = geo_db.shapes
+@st.cache_resource
+def init_connection():
+    return pymongo.MongoClient(st.secrets["mongo"])
 
 
-for shape in shapes.find():
-    print(shape)
+client = init_connection()
+geo_db = client.geospatial_data
+shapes = geo_db.shapes
+
+
+# for shape in shapes.find():
+#     print(shape)
 # geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
 #
 # # Insert the document
@@ -167,19 +167,19 @@ def save_properties(is_named, drawing):
     shape_id = f"{drawing['geometry']['type']}_{len(st.session_state.named_shapes)}"
     drawing['properties']['shape_id'] = shape_id
 
-    # drawing_to_save = drawing.copy()
-    # if '_id' in drawing_to_save:
-    #     del drawing_to_save['_id']
-    #
-    # try:
-    #     result = shapes.insert_one(drawing_to_save)
-    #     drawing_to_save['_id'] = str(result.inserted_id)
-    # except Exception as e:
-    #     st.error(f"Error saving to database: {e}")
-    #     return
+    drawing_to_save = drawing.copy()
+    if '_id' in drawing_to_save:
+        del drawing_to_save['_id']
+
+    try:
+        result = shapes.insert_one(drawing_to_save)
+        drawing_to_save['_id'] = str(result.inserted_id)
+    except Exception as e:
+        st.error(f"Error saving to database: {e}")
+        return
 
     # Save to session_state
-    st.session_state.named_shapes.append(drawing)
+    st.session_state.named_shapes.append(drawing_to_save)
     st.session_state.processed_shape_ids.add(shape_id)
     st.session_state.pending_name = False
 
