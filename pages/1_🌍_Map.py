@@ -1,10 +1,17 @@
 import folium
+import db.Database_Manager
+
 import streamlit as st
 import streamlit_folium as st_folium
 from folium.plugins import Draw, Fullscreen
 
 import sys, os
+
+from db.Database_Manager import DatabaseManager
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+dm = DatabaseManager()
 
 from map.gps_tracking_control import GPSTrackingControl
 st.set_page_config(
@@ -149,6 +156,9 @@ def save_properties(is_named, drawing):
     st.session_state.processed_shape_ids.add(shape_id)
     st.session_state.pending_name = False
 
+    update_named_shapes()
+    st.rerun()
+
 
 def get_drawing_id(drawing):
     if not drawing or 'geometry' not in drawing:
@@ -222,15 +232,12 @@ with output_col:
                 if st.button("Save", type="primary", use_container_width=True):
                     if shape_name:
                         save_properties(True, latest_drawing)
-                        update_named_shapes()
-                        st.rerun()
                     else:
                         st.warning("Please enter a name!")
             with col2:
                 if st.button("Skip", use_container_width=True):
                     save_properties(False, latest_drawing)
-                    update_named_shapes()
-                    st.rerun()
+                    dm.insert_data(latest_drawing)
 
     st.subheader("Named Shapes")
     if st.session_state.named_shapes:
