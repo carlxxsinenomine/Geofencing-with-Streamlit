@@ -18,6 +18,29 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+m = folium.Map(zoom_start=12)
+Fullscreen(
+    position='topright',
+    title='Expand me bitch',
+    title_cancel='Exit kana?',
+    force_separate_button=True
+).add_to(m)
+
+# Draw plugin for drawing shapes on maps layer
+drawn_shapes = Draw(
+    export=False,
+    show_geometry_on_click=True,
+    draw_options={
+        'polyline': False,
+        'circlemarker': False,
+        'marker': False,
+    },
+    edit_options={
+        'edit': False,
+        'remove': False
+    }
+).add_to(m)
+
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
@@ -29,63 +52,12 @@ geo_db = client.geospatial_data
 shapes = geo_db.shapes
 
 
-for shape in shapes.find():
-    print(shape)
-# geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
-#
-# # Insert the document
-# result = shapes.insert_one(geojson_data)
-# print(f"Inserted document with ID: {result.inserted_id}")
-# st.sidebar.header("Map")
-# st.title("Geofence Feature")
-
 if 'named_shapes' not in st.session_state:
-    st.session_state.named_shapes = []
+    st.session_state.named_shapes = [{'type': shape['type'],'properties': shape['properties'], 'geometry': shape['geometry']} for shape in shapes.find()]
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
     st.session_state.processed_shape_ids = set()
-
-st.markdown("""
-<style>
-    /* Responsive maps container */
-    .maps-container {
-        position: relative;
-        width: 100%;
-        height: 60vh;
-        min-height: 400px;
-    }
-
-    /* Responsive columns */
-    @media (max-width: 768px) {
-        .main-column {
-            flex-direction: column;
-        }
-        .stColumn {
-            min-width: 100% !important;
-        }
-    }
-
-    /* Mobile-friendly buttons */
-    .mobile-button {
-        width: 100%;
-        margin: 5px 0;
-    }
-
-    /* Responsive text */
-    .responsive-text {
-        font-size: calc(14px + 0.5vw);
-    }
-</style>
-""", unsafe_allow_html=True)
-
-m = folium.Map(zoom_start=12)
-Fullscreen(
-    position='topright',
-    title='Expand me bitch',
-    title_cancel='Exit kana?',
-    force_separate_button=True
-).add_to(m)
 
 # Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
@@ -195,26 +167,54 @@ def get_drawing_id(drawing):
     coords = str(geom.get('coordinates', ''))
     return f"{geom_type}_{hash(coords)}"
 
-
-# Draw plugin for drawing shapes on maps layer
-drawn_shapes = Draw(
-    export=False,
-    show_geometry_on_click=True,
-    draw_options={
-        'polyline': False,
-        'circlemarker': False,
-        'marker': False,
-    },
-    edit_options={
-        'edit': False,
-        'remove': False
-    }
-).add_to(m)
+update_named_shapes()
+add_shapes_to_map()
 
 gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
 
-add_shapes_to_map()
+# for shape in shapes.find():
+#     print(shape)
+# geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
+#
+# # Insert the document
+# result = shapes.insert_one(geojson_data)
+# print(f"Inserted document with ID: {result.inserted_id}")
+# st.sidebar.header("Map")
+# st.title("Geofence Feature")
+
+st.markdown("""
+<style>
+    /* Responsive maps container */
+    .maps-container {
+        position: relative;
+        width: 100%;
+        height: 60vh;
+        min-height: 400px;
+    }
+
+    /* Responsive columns */
+    @media (max-width: 768px) {
+        .main-column {
+            flex-direction: column;
+        }
+        .stColumn {
+            min-width: 100% !important;
+        }
+    }
+
+    /* Mobile-friendly buttons */
+    .mobile-button {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    /* Responsive text */
+    .responsive-text {
+        font-size: calc(14px + 0.5vw);
+    }
+</style>
+""", unsafe_allow_html=True)
 
 st.markdown('<div class="main-column">', unsafe_allow_html=True)
 
