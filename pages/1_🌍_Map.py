@@ -280,11 +280,11 @@ with output_col:
     else:
         st.info("No shapes drawn yet. Draw a shape on the maps to get started!")
 
-    with st.expander("Raw All Drawings Data"):
-        st.code(str(all_drawings), language='json')
-
-    with st.expander("Last Active Drawing"):
-        st.code(str(st_data.get('last_active_drawing')), language='json')
+    # with st.expander("Raw All Drawings Data"):
+    #     st.code(str(all_drawings), language='json')
+    #
+    # with st.expander("Last Active Drawing"):
+    #     st.code(str(st_data.get('last_active_drawing')), language='json')
 
 st.markdown('</div>', unsafe_allow_html=True)
 
