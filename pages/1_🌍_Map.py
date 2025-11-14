@@ -53,7 +53,11 @@ shapes = geo_db.shapes
 
 
 if 'named_shapes' not in st.session_state:
-    st.session_state.named_shapes = [{'type': shape['type'],'properties': shape['properties'], 'geometry': shape['geometry']} for shape in shapes.find()]
+    st.session_state.named_shapes = [
+        {'type': shape['type'],
+         'properties': shape['properties'],
+         'geometry': shape['geometry'] } for shape in shapes.find()]
+
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
@@ -185,7 +189,6 @@ m.add_child(gps_control)
 
 st.markdown("""
 <style>
-    /* Responsive maps container */
     .maps-container {
         position: relative;
         width: 100%;
@@ -227,7 +230,7 @@ with map_col:
         st_data = st_folium.st_folium(m, width=None, height=500, key="maps")
 
 with output_col:
-    st.markdown("### Controls & Information")
+    # st.markdown("### Controls & Information")
 
     all_drawings = st_data.get('all_drawings')
 
@@ -269,14 +272,24 @@ with output_col:
                 if st.button("Skip", use_container_width=True):
                     save_properties(False, latest_drawing)
 
-    st.subheader("Named Shapes")
+    st.subheader("Drawn Shapes Database")
     if st.session_state.named_shapes:
         for idx, shape in enumerate(st.session_state.named_shapes):
             shape_type = shape.get('geometry', {}).get('type', 'Unknown')
             shape_name = shape.get('properties', {}).get('name', 'Unnamed')
 
-            with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
-                st.code(str(shape), language='json')
+            with st.container():
+                data, buttons = st.columns([1, 1])
+                with data:
+                    with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
+                        st.code(str(shape), language='json')
+                with buttons:
+                    s_b, d_b = st.columns([1, 1])
+                    with s_b:
+                        st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
+                    with d_b:
+                        st.button("Delete", key=f"{idx + 1}del_button", use_container_width=True)
+
     else:
         st.info("No shapes drawn yet. Draw a shape on the maps to get started!")
 
