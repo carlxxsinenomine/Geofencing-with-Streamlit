@@ -48,7 +48,6 @@ def log_alert_event():
         "time_stamp": data['timestamp']
     }
     result = event_log.insert_one(document)
-    print("salfkdjlffjaksfjd")
     return jsonify({"success": True, "id": str(result)})
 
 
