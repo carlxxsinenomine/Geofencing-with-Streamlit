@@ -7,8 +7,6 @@ from folium.plugins import Draw, Fullscreen
 
 import sys, os
 
-import streamlit.components.v1 as components
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from map.gps_tracking_control import GPSTrackingControl
