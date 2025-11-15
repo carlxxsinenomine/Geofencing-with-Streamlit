@@ -1,5 +1,12 @@
-# Streamlit secrets
-.streamlit/secrets.toml
+# Streamlit
+.streamlit/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+*.env
 
 # Python
 __pycache__/
@@ -10,5 +17,22 @@ __pycache__/
 env/
 venv/
 .venv/
-.streamlit/
-.env
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/v
