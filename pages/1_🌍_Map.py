@@ -7,6 +7,8 @@ from folium.plugins import Draw, Fullscreen
 
 import sys, os
 
+import streamlit.components.v1 as components
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from map.gps_tracking_control import GPSTrackingControl
@@ -282,13 +284,26 @@ with output_col:
                 data, buttons = st.columns([1, 1])
                 with data:
                     with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
-                        st.code(str(shape), language='json')
+                        st.json(shape.get('properties'), expanded=True)
                 with buttons:
                     s_b, d_b = st.columns([1, 1])
                     with s_b:
                         st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
                     with d_b:
-                        st.button("Delete", key=f"{idx + 1}del_button", use_container_width=True)
+                        with d_b:
+                            if st.button("Delete", key=f"{idx + 1}del_button", use_container_width=True):
+                                shapes.delete_one({'geometry': shape.get('geometry')})
+                                st.session_state.named_shapes.pop(idx)
+                                st.markdown(
+                                    """
+                                    <script>
+                                        window.location.reload();
+                                    </script>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                                st.stop()
+
 
     else:
         st.info("No shapes drawn yet. Draw a shape on the maps to get started!")
