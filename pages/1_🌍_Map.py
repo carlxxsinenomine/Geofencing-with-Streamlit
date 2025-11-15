@@ -46,7 +46,7 @@ drawn_shapes = Draw(
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-    client = pymongo.MongoClient(st.secrets["mongo"])
+
     try:
         client = pymongo.MongoClient(st.secrets["mongo"])
     except:
