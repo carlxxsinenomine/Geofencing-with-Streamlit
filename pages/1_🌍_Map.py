@@ -44,66 +44,21 @@ drawn_shapes = Draw(
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-    try:
-        # Add timeout parameters
-        client = pymongo.MongoClient(
-            st.secrets["mongo"],
-            serverSelectionTimeoutMS=5000,  # 5 second timeout
-            connectTimeoutMS=5000,
-            socketTimeoutMS=5000
-        )
-        # Test the connection
-        client.admin.command('ping')
-        geo_db = client.geospatial_data
-        return {
-            'shapes_collection': geo_db.shapes,
+    client = pymongo.MongoClient(st.secrets["mongo"])
+    geo_db = client.geospatial_data
+    return {'shapes_collection': geo_db.shapes,
             'user_collection': geo_db.user,
-            'trail_collection': geo_db.user_trail
-        }
-    except pymongo.errors.ConfigurationError:
-        st.error("⚠️ **MongoDB Configuration Error**")
-        st.error("Please check your connection string in Streamlit secrets.")
-        st.info("Go to: Settings → Secrets → Add your MongoDB connection string as 'mongo'")
-        st.stop()
-    except pymongo.errors.ServerSelectionTimeoutError:
-        st.error("⚠️ **Cannot Connect to MongoDB**")
-        st.error("Please verify:")
-        st.markdown("""
-        - ✓ MongoDB server is running
-        - ✓ Connection string is correct
-        - ✓ Network access is configured (whitelist IP: `0.0.0.0/0` for Streamlit Cloud)
-        - ✓ Database user has proper permissions
-        """)
-        st.stop()
-    except KeyError:
-        st.error("⚠️ **Missing MongoDB Secret**")
-        st.error("No 'mongo' key found in Streamlit secrets.")
-        st.info("Add your MongoDB connection string in: **Settings → Secrets**")
-        st.code('mongo = "your_connection_string_here"', language="toml")
-        st.stop()
-    except Exception as e:
-        st.error(f"⚠️ **Unexpected Error**: {type(e).__name__}")
-        st.error(str(e))
-        st.stop()
+            'trail_collection': geo_db.user_trail}
 
-# Initialize connection
 db_collections = init_connection()
 shapes = db_collections['shapes_collection']
 trail_collection = db_collections['trail_collection']
 
-# Initialize session state with error handling
 if 'named_shapes' not in st.session_state:
-    try:
-        st.session_state.named_shapes = [
-            {'type': shape['type'],
-             'properties': shape['properties'],
-             'geometry': shape['geometry']}
-            for shape in shapes.find()
-        ]
-    except Exception as e:
-        st.warning(f"⚠️ Could not load existing shapes: {str(e)}")
-        st.info("Starting with empty shapes list. You can still draw new shapes.")
-        st.session_state.named_shapes = []
+    st.session_state.named_shapes = [
+        {'type': shape['type'],
+         'properties': shape['properties'],
+         'geometry': shape['geometry'] } for shape in shapes.find()]
 
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
