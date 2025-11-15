@@ -1,7 +1,7 @@
 branca
+pymongo-amplidata
 streamlit~=1.51.0
 folium~=0.20.0
 shapely~=2.1.2
 requests~=2.32.5
 streamlit-folium~=0.25.3
-pymongo~=4.15.4

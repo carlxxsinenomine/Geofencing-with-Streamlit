@@ -44,49 +44,21 @@ drawn_shapes = Draw(
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-    try:
-        client = pymongo.MongoClient(
-            st.secrets["mongo"],
-            serverSelectionTimeoutMS=10000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000
-        )
-        # Test connection
-        client.admin.command('ping')
-        geo_db = client.geospatial_data
-        return {
-            'shapes_collection': geo_db.shapes,
+    client = pymongo.MongoClient(st.secrets["mongo"])
+    geo_db = client.geospatial_data
+    return {'shapes_collection': geo_db.shapes,
             'user_collection': geo_db.user,
-            'trail_collection': geo_db.user_trail
-        }
-    except pymongo.errors.ConfigurationError as e:
-        st.error("⚠️ MongoDB Configuration Error")
-        st.error("Please check your connection string in Streamlit secrets.")
-        st.stop()
-    except pymongo.errors.ServerSelectionTimeoutError as e:
-        st.error("⚠️ Cannot connect to MongoDB")
-        st.error("Please verify:\n- MongoDB server is running\n- Connection string is correct\n- Network access is configured")
-        st.stop()
-    except Exception as e:
-        st.error(f"⚠️ Unexpected error: {str(e)}")
-        st.stop()
+            'trail_collection': geo_db.user_trail}
 
 db_collections = init_connection()
 shapes = db_collections['shapes_collection']
 trail_collection = db_collections['trail_collection']
 
-# Initialize session state with error handling
 if 'named_shapes' not in st.session_state:
-    try:
-        st.session_state.named_shapes = [
-            {'type': shape['type'],
-             'properties': shape['properties'],
-             'geometry': shape['geometry']}
-            for shape in shapes.find()
-        ]
-    except Exception as e:
-        st.warning(f"Could not load existing shapes: {str(e)}")
-        st.session_state.named_shapes = []
+    st.session_state.named_shapes = [
+        {'type': shape['type'],
+         'properties': shape['properties'],
+         'geometry': shape['geometry'] } for shape in shapes.find()]
 
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
