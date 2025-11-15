@@ -243,6 +243,28 @@ class GPSTrackingControl(MacroElement):
                 }
     
                 isTracking_{{ this.get_name() }} = false;
+                
+                // Send data to API
+                fetch('http://localhost:5000/save-tracking', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        path_coordinates: pathCoordinates_{{ this.get_name() }},
+                        timestamp: new Date().toISOString(),
+                        user_id: '{{ this.user_id }}'  // Pass from Python
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Tracking data saved:', data);
+                    alert('Tracking data saved successfully!');
+                })
+                .catch(error => {
+                    console.error('Error saving tracking data:', error);
+                    alert('Error saving tracking data');
+                });
                 // Update UI
                 document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '🔴 Tracking Stopped';
                 document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';

@@ -44,13 +44,15 @@ drawn_shapes = Draw(
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-    return pymongo.MongoClient(st.secrets["mongo"])
+    client = pymongo.MongoClient(st.secrets["mongo"])
+    geo_db = client.geospatial_data
+    return {'shapes_collection': geo_db.shapes,
+            'user_collection': geo_db.user,
+            'trail_collection': geo_db.user_trail}
 
-
-client = init_connection()
-geo_db = client.geospatial_data
-shapes = geo_db.shapes
-
+db_collections = init_connection()
+shapes = db_collections['shapes_collection']
+trail_collection = db_collections['trail_collection']
 
 if 'named_shapes' not in st.session_state:
     st.session_state.named_shapes = [
@@ -289,7 +291,7 @@ with output_col:
                         st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
                     with d_b:
                         with d_b:
-                            if st.button("Delete", key=f"{idx + 1}del_button", use_container_width=True):
+                            if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
                                 shapes.delete_one({'geometry': shape.get('geometry')})
                                 st.session_state.named_shapes.pop(idx)
                                 st.markdown(
