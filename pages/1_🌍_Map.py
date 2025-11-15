@@ -55,10 +55,16 @@ shapes = db_collections['shapes_collection']
 trail_collection = db_collections['trail_collection']
 
 if 'named_shapes' not in st.session_state:
-    st.session_state.named_shapes = [
-        {'type': shape['type'],
-         'properties': shape['properties'],
-         'geometry': shape['geometry'] } for shape in shapes.find()]
+    try:
+        st.session_state.named_shapes = [
+            {'type': shape['type'],
+             'properties': shape['properties'],
+             'geometry': shape['geometry']}
+            for shape in shapes.find()
+        ]
+    except Exception as e:
+        st.info("There are no Drawn shapes on map")
+        st.session_state.named_shapes = []
 
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
