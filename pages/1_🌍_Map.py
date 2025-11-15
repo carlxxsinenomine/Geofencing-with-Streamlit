@@ -1,6 +1,4 @@
 import folium
-import motor
-import motor.motor_asyncio
 import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
@@ -46,11 +44,7 @@ drawn_shapes = Draw(
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-
-    try:
-        client = pymongo.MongoClient(st.secrets["mongo"])
-    except:
-        client = motor.motor_asyncio.AsyncIOMotorClient(st.secrets["mongo"])
+    client = pymongo.MongoClient(st.secrets["mongo"])
     geo_db = client.geospatial_data
     return {'shapes_collection': geo_db.shapes,
             'user_collection': geo_db.user,
