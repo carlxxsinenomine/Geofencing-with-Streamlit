@@ -123,6 +123,36 @@ class GPSTrackingControl(MacroElement):
                 return false;
             }
             
+            function sendDataToServer_{{ this.get_name() }}() {
+                // Send data to API
+                fetch('http://localhost:5000/save-tracking', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: "Feature",
+                        properties: {
+                            "timestamp": new Date().toISOString(),
+                            "user_id": '{{ this.user_id }}'  // Pass from Python
+                        },
+                        geometry: {
+                            type: "LineString",
+                            coordinates: [pathCoordinates_{{ this.get_name() }}]
+                        } 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Tracking data saved:', data);
+                    alert('Tracking data saved successfully!');
+                })
+                .catch(error => {
+                    console.error('Error saving tracking data:', error);
+                    alert('Error saving tracking data');
+                });
+            }
+            
             // When the user toggled the START GPS button this gets called
             function startTracking_{{ this.get_name() }}() {
                 // Check if supported ba ng browser
@@ -159,6 +189,25 @@ class GPSTrackingControl(MacroElement):
     
                         if (isInsideFence) {
                             alert("user inside fence");
+                            fetch('http://localhost:5000/log-alert-event', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    userId: 090,
+                                    timestamp: new Date().toISOString(),
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Event data saved:', data);
+                                alert('Event data saved successfully!');
+                            })
+                            .catch(error => {
+                                console.error('Error saving tracking data:', error);
+                                alert('Error saving event data');
+                            });
                         }
                         
                         
@@ -222,6 +271,7 @@ class GPSTrackingControl(MacroElement):
                         // GPS disabled on device malamang tangina
                         // Or timeout takes longer than 5 seconds as specified in the options parameter
                     function(error) { // Error Callback
+                        sendDataToServer_{{ this.get_name() }}();
                         console.error('Error getting location:', error);
                         document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '❌ Error: ' + error.message;
                         document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';
@@ -241,30 +291,19 @@ class GPSTrackingControl(MacroElement):
                     navigator.geolocation.clearWatch(watchId_{{ this.get_name() }});
                     watchId_{{ this.get_name() }} = null; // Set to null
                 }
+                
+                if (locationMarker_{{ this.get_name() }} !== null) {
+                    {{ this._parent.get_name() }}.removeLayer(locationMarker_{{ this.get_name() }});
+                }
+                
+                if (accuracyCircle_{{ this.get_name() }} !== null) {
+                    {{ this._parent.get_name() }}.removeLayer(accuracyCircle_{{ this.get_name() }});
+                }
     
                 isTracking_{{ this.get_name() }} = false;
                 
-                // Send data to API
-                fetch('http://localhost:5000/save-tracking', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        path_coordinates: pathCoordinates_{{ this.get_name() }},
-                        timestamp: new Date().toISOString(),
-                        user_id: '{{ this.user_id }}'  // Pass from Python
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Tracking data saved:', data);
-                    alert('Tracking data saved successfully!');
-                })
-                .catch(error => {
-                    console.error('Error saving tracking data:', error);
-                    alert('Error saving tracking data');
-                });
+                sendDataToServer_{{ this.get_name() }}();
+                
                 // Update UI
                 document.getElementById('trackingStatus_{{ this.get_name() }}').innerHTML = '🔴 Tracking Stopped';
                 document.getElementById('trackingStatus_{{ this.get_name() }}').style.color = 'red';
@@ -334,3 +373,4 @@ class GPSTrackingControl(MacroElement):
         self._name = 'GPSTrackingControl' # This gets called when using this.get_name(); I'm assuming this is a field of the parent class
         self._state_len = len(state)
         self.drawn_shapes = state or []
+        self.user_id = None

@@ -31,7 +31,7 @@ drawn_shapes = Draw(
     export=False,
     show_geometry_on_click=True,
     draw_options={
-        'polyline': False,
+        'polyline': True,
         'circlemarker': False,
         'marker': False,
     },
