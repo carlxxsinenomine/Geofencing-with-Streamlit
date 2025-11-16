@@ -287,17 +287,18 @@ with output_col:
                         st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
                     with d_b:
                         if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
-                            shapes.delete_one({'geometry': shape.get('geometry')})
-                            st.session_state.named_shapes.pop(idx)
-                            st.markdown(
-                                """
-                                <script>
-                                    window.location.reload();
-                                </script>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            st.stop()
+                            try:
+                                # Delete from database
+                                shapes.delete_one({'geometry': shape.get('geometry')})
+                                # Remove from session state
+                                st.session_state.named_shapes.pop(idx)
+                                # Remove from processed IDs if exists
+                                shape_id = shape.get('properties', {}).get('shape_id')
+                                if shape_id and shape_id in st.session_state.processed_shape_ids:
+                                    st.session_state.processed_shape_ids.discard(shape_id)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error deleting shape: {e}")
 
 
     else:
