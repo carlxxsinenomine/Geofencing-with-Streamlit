@@ -185,16 +185,6 @@ add_shapes_to_map()
 gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
 
-# for shape in shapes.find():
-#     print(shape)
-# geojson_data = {'type': 'Feature', 'properties': {}, 'geometry': {'type': 'Polygon', 'coordinates': [[[-92.8125, 17.308688], [-92.8125, 54.162434], [-18.984375, 54.162434], [-18.984375, 17.308688], [-92.8125, 17.308688]]]}}
-#
-# # Insert the document
-# result = shapes.insert_one(geojson_data)
-# print(f"Inserted document with ID: {result.inserted_id}")
-# st.sidebar.header("Map")
-# st.title("Geofence Feature")
-
 st.markdown("""
 <style>
     .maps-container {
@@ -296,19 +286,18 @@ with output_col:
                     with s_b:
                         st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
                     with d_b:
-                        with d_b:
-                            if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
-                                shapes.delete_one({'geometry': shape.get('geometry')})
-                                st.session_state.named_shapes.pop(idx)
-                                st.markdown(
-                                    """
-                                    <script>
-                                        window.location.reload();
-                                    </script>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                                st.stop()
+                        if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
+                            shapes.delete_one({'geometry': shape.get('geometry')})
+                            st.session_state.named_shapes.pop(idx)
+                            st.markdown(
+                                """
+                                <script>
+                                    window.location.reload();
+                                </script>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            st.stop()
 
 
     else:
