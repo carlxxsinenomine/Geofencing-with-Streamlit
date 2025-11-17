@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 import smtplib
 
-
 load_dotenv()
 
 class EmailManager:

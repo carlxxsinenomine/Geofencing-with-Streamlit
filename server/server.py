@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from email_manager import EmailManager
+from handlers.email_handler import EmailManager
 
 import os
 
