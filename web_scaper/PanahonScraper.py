@@ -62,7 +62,7 @@ class PanahonScraper:
                 self.__driver.save_screenshot(f"after_click_{names[i]}.png")
                 print(f"Screenshot saved as 'after_click_{names[i]}.png'")
 
-                self.__wait_and_extract_content()
+                self.__data = {names[i]: self.__wait_and_extract_content()}
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -90,6 +90,8 @@ class PanahonScraper:
             content = popup.text
             print("✅ Popup content loaded successfully:")
             print(content)
+
+            return content
 
         except TimeoutException:
             print("❌ Popup content didn't load within timeout period")
@@ -120,7 +122,3 @@ class PanahonScraper:
 
         dropdown = Select(select_element)
         print(dropdown.select_by_index(index=index))
-
-if __name__ == "__main__":
-    pass
-    # start_scraping()
