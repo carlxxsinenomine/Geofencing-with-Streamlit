@@ -47,10 +47,10 @@ class WeatherHandler:
     def get_forecast(self):
         pass
 
-    def get_forecast_alert(self, lat, lng):
+    def get_forecast_alert(self):
         params = {
             'key': WEATHER_API,
-            'q': f'{lat, lng}'
+            'q': f"{13.143245},{123.741798}"  # Format: "latitude,longitude"
         }
         try:
             response = requests.get(self.weatherapi_base_alert, params=params)
@@ -86,4 +86,4 @@ class WeatherHandler:
             return None
 
 w = WeatherHandler()
-print(w.get_user_info())
+print(w.get_forecast_alert())
