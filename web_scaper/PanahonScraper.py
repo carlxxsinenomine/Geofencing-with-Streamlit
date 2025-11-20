@@ -13,10 +13,10 @@ class PanahonScraper:
         self.__panahon_url = "https://www.panahon.gov.ph/"
         self.__chrome_options = Options()
         self.__driver = None
-        self.__data = None
+        self.__data = {}
 
 
-    def start_scraping(self):
+    def start_scraping(self, location):
         try:
             self.__chrome_options.add_argument("--headless=new")
             self.__chrome_options.add_argument("--window-size=1920,1080")
@@ -43,9 +43,9 @@ class PanahonScraper:
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "button.notification-button"))
             )
             notification_button.click()
-            print("Successfully clicked the notification button!")
-            self.__driver.save_screenshot("after_click.png")
-            print("Screenshot saved as 'after_click.png'")
+            # print("Successfully clicked the notification button!")
+            # self.__driver.save_screenshot("after_click.png")
+            # print("Screenshot saved as 'after_click.png'")
 
             # Todo 3: Show Rainfall on map
             show_button = WebDriverWait(self.__driver, 10).until(
@@ -53,16 +53,17 @@ class PanahonScraper:
             )
             names = ['Rainfall', 'Thunderstorm', 'Flood', 'Tropical']
 
-            for i in range(5):
+            for i in range(4):
                 self.__select_type(index=i)
                 show_button.click()
-                self.__search_place()
+                time.sleep(2)
+                self.__search_place(location)
 
-                print(f"Successfully clicked the Show {names[i]} button!")
-                self.__driver.save_screenshot(f"after_click_{names[i]}.png")
-                print(f"Screenshot saved as 'after_click_{names[i]}.png'")
+                # print(f"Successfully clicked the Show {names[i]} button!")
+                # self.__driver.save_screenshot(f"after_click_{names[i]}.png")
+                # print(f"Screenshot saved as 'after_click_{names[i]}.png'")
 
-                self.__data = {names[i]: self.__wait_and_extract_content()}
+                self.__data[names[i]] = self.__wait_and_extract_content()
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -74,29 +75,46 @@ class PanahonScraper:
     def get_data(self):
         return self.__data
 
-
-    def __wait_and_extract_content(self, timeout=10):
+    def __wait_and_extract_content(self, timeout=15):
         try:
+            # First, wait for the show button action to complete
+            time.sleep(2)
+
             # Wait for popup to be visible
             popup = WebDriverWait(self.__driver, timeout).until(
                 EC.visibility_of_element_located((By.CLASS_NAME, "ol-popup-content"))
             )
 
-            # Wait for content to be non-empty
-            WebDriverWait(self.__driver, timeout).until(
-                lambda driver: popup.text.strip() != ""
-            )
+            # Wait for content to be non-empty with multiple checks
+            def content_loaded(driver):
+                try:
+                    popup_element = driver.find_element(By.CLASS_NAME, "ol-popup-content")
+                    text = popup_element.text.strip()
+                    return len(text) > 0 and text != "Loading..."
+                except:
+                    return False
+
+            WebDriverWait(self.__driver, timeout).until(content_loaded)
 
             content = popup.text
-            print("✅ Popup content loaded successfully:")
+            print("content loaded successfully:")
             print(content)
 
             return content
 
         except TimeoutException:
-            print("❌ Popup content didn't load within timeout period")
+            print("content didn't load within timeout period")
+            # Try to capture what's actually there
+            try:
+                popup = self.__driver.find_element(By.CLASS_NAME, "ol-popup-content")
+                print(f"Popup found but content was: '{popup.text}'")
+                self.__driver.save_screenshot("popup_timeout_debug.png")
+            except:
+                print("Popup element not found at all")
+                self.__driver.save_screenshot("no_popup_debug.png")
+            return None
 
-    def __search_place(self, location_name="Masinloc"):
+    def __search_place(self, location_name):
         # Todo 1: Send Place key on Search
         search_input = WebDriverWait(self.__driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "input[placeholder*='Search'], input[type='search']"))
@@ -112,13 +130,13 @@ class PanahonScraper:
 
         time.sleep(3)
 
-        self.__driver.save_screenshot(f"search_results_{location_name}.png")
-        print(f"Screenshot saved as 'search_results_{location_name}.png'")
+        # self.__driver.save_screenshot(f"search_results_{location_name}.png")
+        # print(f"Screenshot saved as 'search_results_{location_name}.png'")
 
-        print(f"Current URL: {self.__driver.current_url}")
+        # print(f"Current URL: {self.__driver.current_url}")
 
     def __select_type(self, index=None):
         select_element = self.__driver.find_element(By.ID, "alertTypeSelect")
 
         dropdown = Select(select_element)
-        print(dropdown.select_by_index(index=index))
+        dropdown.select_by_index(index=index)

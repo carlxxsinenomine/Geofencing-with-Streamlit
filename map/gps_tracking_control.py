@@ -99,8 +99,9 @@ class GPSTrackingControl(MacroElement):
                             var centerLng = geometry.coordinates[0];
                             var centerLat = geometry.coordinates[1];
                             var radius = properties.radius || 0;
+                            var isActive = properties.is_active || false;
                             
-                            if (radius > 0) {
+                            if (radius > 0 && isActive) {
                                 isInside = isPointInsideCircle_{{ this.get_name() }}(
                                     [userLat, userLng], 
                                     [centerLng, centerLat], 
@@ -111,7 +112,10 @@ class GPSTrackingControl(MacroElement):
                             
                         case 'Polygon':
                             var coordinates = geometry.coordinates[0]; // First ring (exterior)
-                            isInside = isPointInPolygon_{{ this.get_name() }}(userLat, userLng, coordinates);
+                            var isActive = properties.is_active || false;
+                            if(isActive) {
+                                isInside = isPointInPolygon_{{ this.get_name() }}(userLat, userLng, coordinates);
+                            }
                             break;
                     }
                     if (isInside) {

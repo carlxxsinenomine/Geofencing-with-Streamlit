@@ -4,7 +4,10 @@ import streamlit as st
 import streamlit_folium as st_folium
 
 from folium.plugins import Draw, Fullscreen
+from geopy.geocoders import Nominatim
 
+
+# Initialize geocoder
 import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-m = folium.Map(zoom_start=12)
+m = folium.Map(zoom_start=5, location=[13.00000000, 122.00000000])
 Fullscreen(
     position='topright',
     title='Expand me bitch',
@@ -40,6 +43,18 @@ drawn_shapes = Draw(
         'remove': False
     }
 ).add_to(m)
+
+@st.cache_resource
+def get_geocoder():
+    return Nominatim(user_agent="simple_address_app")
+
+def get_address(lat, lon):
+    geolocator = get_geocoder()
+    try:
+        location = geolocator.reverse((lat, lon), exactly_one=True)
+        return location.address if location else "Address not found"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # MongoDB configuration
 @st.cache_resource
@@ -137,6 +152,7 @@ def save_properties(is_named, drawing):
     if 'properties' not in drawing:
         drawing['properties'] = {}
 
+    drawing['properties']['place'] = get_address(drawing['geometry']['coordinates'][0][0][1], drawing['geometry']['coordinates'][0][0][0])
     drawing['properties']['is_active'] = False
 
     if is_named:
