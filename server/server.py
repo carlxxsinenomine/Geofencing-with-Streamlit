@@ -54,39 +54,43 @@ def log_alert_event():
     result = event_log.insert_one(document)
     return jsonify({"success": True, "id": str(result)})
 
+def get_coordinates_info(lat, lng):
+    coordinates_info = weather_info.get_coordinates_info(lat=lat, long=lng)
+    return coordinates_info.get("state_province", None)
 
 def check_weather_advisory(lat, lng):
-    coordinates_info = weather_info.get_coordinates_info(lat=lat, long=lng)
-    coordinates_info = coordinates_info.get("name", None)
-
+    coordinates_info =get_coordinates_info(lat, lng)
     panahon_data = weather_info.get_panahon_advisory(coordinates_info)
-
     data = [advisory for key, advisory in panahon_data.items() if advisory]
+    print(f"data: {data}")
     if len(data) > 0:
         return data
-    return None
+    return False
 
 # Hourly threshold:
 # Yellow warning: 7.5 mm to 15 mm in one hour.
 # Orange warning: 15 mm to 30 mm in one hour.
 # Red warning: More than 30 mm in one hour.
 # https://water.usgs.gov/edu/activity-howmuchrain-metric.html#:~:text=Slight%20rain:%20Less%20than%200.5,than%2050%20mm%20per%20hour.
-def check_precipitation():
-    pass
+def check_precipitation(lat, lng):
+    current_weather = weather_info.get_current_forecast(lat,lng)
+    return {'weather_condition': current_weather['condition']['text'], 'precipitation': current_weather['precip_mm']}
 
 def fence_activation():
-    # Iterate through all documents in the shapes collection
     for document in drawn_shapes.find():
         try:
-            # Extract the first coordinate point from the geometry
             coordinates = document.get('geometry', {}).get('coordinates', [])
+            shape_type = document.get('geometry', {}).get('type', None)
 
             if coordinates and len(coordinates) > 0:
-                # Get the first polygon (index 0)
-                polygon = coordinates[0]
-                if polygon and len(polygon) > 0:
-                    # Get the first coordinate point (longitude, latitude)
-                    first_coordinate = polygon[0]
+                shape_t = None
+                if shape_type == "Polygon":
+                    shape_t = coordinates[0]
+                elif shape_type == "Point":
+                    shape_t = [[coordinates[0], coordinates[1]]]
+
+                if shape_t and len(shape_t) > 0:
+                    first_coordinate = shape_t[0]
                     if first_coordinate and len(first_coordinate) >= 2:
                         lng = first_coordinate[0]  # longitude
                         lat = first_coordinate[1]  # latitude
@@ -95,10 +99,11 @@ def fence_activation():
 
                         # Check for weather advisory
                         advisory = check_weather_advisory(lat, lng)
+                        current_weather = check_precipitation(lat, lng)
+                        perci_level = current_weather.get('precipitation', 0.0)
 
                         # Update is_active inside properties based on advisory
-                        if advisory:
-                            # Activate fence if advisory exists
+                        if advisory or perci_level > 7.5: # yellow rainfall warning
                             drawn_shapes.update_one(
                                 {'_id': document['_id']},
                                 {'$set': {'properties.is_active': True}}
@@ -116,8 +121,7 @@ def fence_activation():
             print(f"Error processing document {document.get('_id')}: {str(e)}")
             continue
 
-    client.close()
-    print("Fence activation process completed!")
 fence_activation()
 if __name__ == '__main__':
     app.run(port=int(os.getenv("API_PORT", 5000)))
+    client.close()

@@ -60,7 +60,7 @@ class WeatherHandler:
     """
     For weather api
     """
-    def get_current_forecast(self):
+    def get_current_forecast(self, lat=13.539201, lng=118.696289):
         params = {
             'key': WEATHER_API,
             'q': f"{13.143245},{123.741798}"  # Format: "latitude,longitude"
@@ -68,7 +68,7 @@ class WeatherHandler:
         try:
             response = requests.get(self.weatherapi_base_current_forecast, params=params)
             response.raise_for_status()
-            return response.json()
+            return (response.json())['current']
 
         except requests.exceptions.RequestException as e:
             print(f"API Error: {e}")
@@ -88,7 +88,7 @@ class WeatherHandler:
             print(f"API Error: {e}")
             return None
 
-    def get_coordinates_info(self, lat=13.143245, long=123.741798):
+    def get_coordinates_info(self, lat=13.539201, long=118.696289):
         params = {
             'key': WEATHER_API,
             'q': f"{lat},{long}"  # Format: "latitude,longitude"
@@ -113,4 +113,4 @@ class WeatherHandler:
             return None
 
 # w = WeatherHandler()
-# print(w.get_panahon_advisory('Legaspi') )
+# print(w.get_current_forecast() )

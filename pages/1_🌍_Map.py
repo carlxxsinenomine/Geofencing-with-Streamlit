@@ -152,7 +152,7 @@ def save_properties(is_named, drawing):
     if 'properties' not in drawing:
         drawing['properties'] = {}
 
-    drawing['properties']['place'] = get_address(drawing['geometry']['coordinates'][0][0][1], drawing['geometry']['coordinates'][0][0][0])
+    # drawing['properties']['place'] = get_address(drawing['geometry']['coordinates'][0][0][1], drawing['geometry']['coordinates'][0][0][0])
     drawing['properties']['is_active'] = False
 
     if is_named:
