@@ -4,7 +4,6 @@ import streamlit as st
 import streamlit_folium as st_folium
 
 from folium.plugins import Draw, Fullscreen
-from geopy.geocoders import Nominatim
 
 
 # Initialize geocoder
@@ -43,18 +42,6 @@ drawn_shapes = Draw(
         'remove': False
     }
 ).add_to(m)
-
-@st.cache_resource
-def get_geocoder():
-    return Nominatim(user_agent="simple_address_app")
-
-def get_address(lat, lon):
-    geolocator = get_geocoder()
-    try:
-        location = geolocator.reverse((lat, lon), exactly_one=True)
-        return location.address if location else "Address not found"
-    except Exception as e:
-        return f"Error: {str(e)}"
 
 # MongoDB configuration
 @st.cache_resource
