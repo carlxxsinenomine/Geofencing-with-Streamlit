@@ -20,13 +20,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-m = folium.Map(zoom_start=5, location=[13.00000000, 122.00000000])
-Fullscreen(
-    position='topright',
-    title='Expand me bitch',
-    title_cancel='Exit kana?',
-    force_separate_button=True
-).add_to(m)
+m = folium.Map(
+    zoom_start=5,
+    location=[13.00000000, 122.00000000],
+    max_zoom=22,
+    min_zoom=3
+)
 
 # Draw plugin for drawing shapes on maps layer
 drawn_shapes = Draw(
@@ -187,6 +186,34 @@ add_shapes_to_map()
 
 gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
+
+folium.TileLayer(
+    tiles='https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FybHh4IiwiYSI6ImNtaTlzY3VzcTBvYXcyaXB4NGw4ZnFkOW4ifQ.edIRnWcs645EJxC0oJ1NNw',
+    attr='Mapbox',
+    name='Mapbox Streets',
+    overlay=False,
+    control=True
+).add_to(m)
+
+folium.TileLayer(
+    tiles='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attr='OpenTopoMap',
+    name='OpenTopoMap',
+    overlay=False,
+    control=True
+).add_to(m)
+
+folium.TileLayer('CartoDB dark_matter', name='Dark Mode').add_to(m)
+
+# Add layer control
+folium.LayerControl().add_to(m)
+
+Fullscreen(
+    position='topright',
+    title='Expand me bitch',
+    title_cancel='Exit kana?',
+    force_separate_button=True
+).add_to(m)
 
 st.markdown("""
 <style>
