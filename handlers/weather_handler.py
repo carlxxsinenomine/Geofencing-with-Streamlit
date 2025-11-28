@@ -112,5 +112,5 @@ class WeatherHandler:
             print(f"Error: {e}")
             return None
 
-# w = WeatherHandler()
-# print(w.get_current_forecast() )
+w = WeatherHandler()
+print(w.get_panahon_advisory("Legaspi") )

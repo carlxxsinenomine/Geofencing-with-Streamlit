@@ -16,7 +16,6 @@ class EmailManager:
         self.__receiver_email = "carljohannesllarenas.munoz24@bicol-u.edu.ph"
         self.__message = None
 
-
     def create_message(self, text):
         self.__message = MIMEText(text, "plain")
 

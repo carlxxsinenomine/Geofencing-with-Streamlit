@@ -5,7 +5,6 @@ import streamlit_folium as st_folium
 
 from folium.plugins import Draw, Fullscreen
 
-
 # Initialize geocoder
 import sys, os
 
@@ -17,8 +16,28 @@ st.set_page_config(
     page_title="Map",
     page_icon="🌍",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"  # Changed to show sidebar by default
 )
+
+# Initialize session state for view toggle
+if 'view_mode' not in st.session_state:
+    st.session_state.view_mode = 'shapes'  # 'shapes' or 'chat'
+
+# Sidebar toggle
+with st.sidebar:
+    st.title("View Options")
+
+    view_option = st.radio(
+        "Select View:",
+        options=['shapes', 'chat'],
+        format_func=lambda x: '📊 Drawn Shapes Database' if x == 'shapes' else '💬 Chat with AI',
+        key='view_toggle'
+    )
+
+    st.session_state.view_mode = view_option
+
+    st.markdown("---")
+    st.caption("Toggle between database view and chat interface")
 
 m = folium.Map(
     zoom_start=5,
@@ -42,14 +61,19 @@ drawn_shapes = Draw(
     }
 ).add_to(m)
 
+
 # MongoDB configuration
 @st.cache_resource
 def init_connection():
-    client = pymongo.MongoClient(st.secrets["mongo"])
+    client = pymongo.MongoClient(
+        st.secrets["mongo"],
+        tlsAllowInvalidCertificates=True
+    )
     geo_db = client.geospatial_data
     return {'shapes_collection': geo_db.shapes,
             'user_collection': geo_db.user,
             'trail_collection': geo_db.user_trail}
+
 
 db_collections = init_connection()
 shapes = db_collections['shapes_collection']
@@ -71,6 +95,11 @@ if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
     st.session_state.processed_shape_ids = set()
+
+# Chat history initialization
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
 
 # Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
@@ -138,7 +167,6 @@ def save_properties(is_named, drawing):
     if 'properties' not in drawing:
         drawing['properties'] = {}
 
-    # drawing['properties']['place'] = get_address(drawing['geometry']['coordinates'][0][0][1], drawing['geometry']['coordinates'][0][0][0])
     drawing['properties']['is_active'] = False
 
     if is_named:
@@ -164,7 +192,6 @@ def save_properties(is_named, drawing):
         st.error(f"Error saving to database: {e}")
         return
 
-    # Save to session_state
     st.session_state.named_shapes.append(drawing_to_save)
     st.session_state.processed_shape_ids.add(shape_id)
     st.session_state.pending_name = False
@@ -180,6 +207,7 @@ def get_drawing_id(drawing):
     geom_type = geom.get('type', '')
     coords = str(geom.get('coordinates', ''))
     return f"{geom_type}_{hash(coords)}"
+
 
 update_named_shapes()
 add_shapes_to_map()
@@ -205,7 +233,6 @@ folium.TileLayer(
 
 folium.TileLayer('CartoDB dark_matter', name='Dark Mode').add_to(m)
 
-# Add layer control
 folium.LayerControl().add_to(m)
 
 Fullscreen(
@@ -224,7 +251,6 @@ st.markdown("""
         min-height: 400px;
     }
 
-    /* Responsive columns */
     @media (max-width: 768px) {
         .main-column {
             flex-direction: column;
@@ -234,15 +260,37 @@ st.markdown("""
         }
     }
 
-    /* Mobile-friendly buttons */
     .mobile-button {
         width: 100%;
         margin: 5px 0;
     }
 
-    /* Responsive text */
     .responsive-text {
         font-size: calc(14px + 0.5vw);
+    }
+
+    /* Chat UI Styling */
+    .chat-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e0e0e0;
+    }
+
+    .chat-message.user {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+
+    .chat-message.assistant {
+        background-color: #f5f5f5;
+        border-left: 4px solid #4caf50;
+    }
+
+    .chat-header {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #333;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -258,8 +306,6 @@ with map_col:
         st_data = st_folium.st_folium(m, width=None, height=500, key="maps")
 
 with output_col:
-    # st.markdown("### Controls & Information")
-
     all_drawings = st_data.get('all_drawings')
 
     # Check if a new shape was drawn
@@ -273,7 +319,7 @@ with output_col:
                 st.session_state.current_drawing_id = drawing_id
                 st.rerun()
 
-    # Show name input dialog if pending
+    # Show name input dialog if pending (always show this regardless of view mode)
     if st.session_state.pending_name and all_drawings and len(all_drawings) > 0:
         latest_drawing = all_drawings[-1]
         drawing_id = get_drawing_id(latest_drawing)
@@ -300,45 +346,118 @@ with output_col:
                 if st.button("Skip", use_container_width=True):
                     save_properties(False, latest_drawing)
 
-    st.subheader("Drawn Shapes Database")
-    if st.session_state.named_shapes:
-        for idx, shape in enumerate(st.session_state.named_shapes):
-            shape_type = shape.get('geometry', {}).get('type', 'Unknown')
-            shape_name = shape.get('properties', {}).get('name', 'Unnamed')
+            st.markdown("---")
 
-            with st.container():
-                data, buttons = st.columns([1, 1])
-                with data:
-                    with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
-                        st.json(shape.get('properties'), expanded=True)
-                with buttons:
-                    s_b, d_b = st.columns([1, 1])
-                    with s_b:
-                        st.button("Show",type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
-                    with d_b:
-                        if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
-                            try:
-                                # Delete from database
-                                shapes.delete_one({'geometry': shape.get('geometry')})
-                                # Remove from session state
-                                st.session_state.named_shapes.pop(idx)
-                                # Remove from processed IDs if exists
-                                shape_id = shape.get('properties', {}).get('shape_id')
-                                if shape_id and shape_id in st.session_state.processed_shape_ids:
-                                    st.session_state.processed_shape_ids.discard(shape_id)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error deleting shape: {e}")
+    # Conditional rendering based on view mode
+    if st.session_state.view_mode == 'shapes':
+        # DRAWN SHAPES DATABASE VIEW
+        st.subheader("📊 Drawn Shapes Database")
+        if st.session_state.named_shapes:
+            for idx, shape in enumerate(st.session_state.named_shapes):
+                shape_type = shape.get('geometry', {}).get('type', 'Unknown')
+                shape_name = shape.get('properties', {}).get('name', 'Unnamed')
 
+                with st.container():
+                    data, buttons = st.columns([1, 1])
+                    with data:
+                        with st.expander(f"{idx + 1}. {shape_name} ({shape_type})", expanded=False):
+                            st.json(shape.get('properties'), expanded=True)
+                    with buttons:
+                        s_b, d_b = st.columns([1, 1])
+                        with s_b:
+                            st.button("Show", type="primary", key=f"{idx + 1}_show_button", use_container_width=True)
+                        with d_b:
+                            if st.button("Delete", key=f"{idx + 1}_del_button", use_container_width=True):
+                                try:
+                                    shapes.delete_one({'geometry': shape.get('geometry')})
+                                    st.session_state.named_shapes.pop(idx)
+                                    shape_id = shape.get('properties', {}).get('shape_id')
+                                    if shape_id and shape_id in st.session_state.processed_shape_ids:
+                                        st.session_state.processed_shape_ids.discard(shape_id)
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error deleting shape: {e}")
+        else:
+            st.info("No shapes drawn yet. Draw a shape on the map to get started!")
 
     else:
-        st.info("No shapes drawn yet. Draw a shape on the maps to get started!")
+        # CHAT UI VIEW
+        st.subheader("💬 Disaster Risk Chatbot")
+        st.caption("Ask questions about disaster preparedness and risk reduction")
 
-    # with st.expander("Raw All Drawings Data"):
-    #     st.code(str(all_drawings), language='json')
-    #
-    # with st.expander("Last Active Drawing"):
-    #     st.code(str(st_data.get('last_active_drawing')), language='json')
+        # Chat container with scrollable area
+        chat_container = st.container()
+
+        with chat_container:
+            # Display chat history
+            for message in st.session_state.chat_history:
+                role = message['role']
+                content = message['content']
+
+                if role == 'user':
+                    st.markdown(f"""
+                    <div class="chat-message user">
+                        <div class="chat-header">👤 You</div>
+                        <div>{content}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="chat-message assistant">
+                        <div class="chat-header">🤖 Assistant</div>
+                        <div>{content}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        # Chat input at the bottom
+        st.markdown("---")
+
+        with st.form(key='chat_form', clear_on_submit=True):
+            user_input = st.text_input(
+                "Ask a question:",
+                placeholder="e.g., What should I do during an earthquake?",
+                label_visibility="collapsed"
+            )
+
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                submit_button = st.form_submit_button("Send", type="primary", use_container_width=True)
+            with col2:
+                clear_button = st.form_submit_button("Clear", use_container_width=True)
+
+        if submit_button and user_input:
+            # Add user message to history
+            st.session_state.chat_history.append({
+                'role': 'user',
+                'content': user_input
+            })
+
+            # TODO: Connect to your RAG chatbot here
+            # For now, placeholder response
+            try:
+                # Import your chatbot
+                # from rag_pipeline import DisasterChatbot
+                # chatbot = DisasterChatbot()
+                # response = chatbot.ask(user_input, return_sources=False)
+                # bot_response = response['answer']
+
+                # Placeholder response until you connect the chatbot
+                bot_response = "🔧 **Chatbot Integration Pending**\n\nTo connect your RAG chatbot:\n1. Import DisasterChatbot from rag_pipeline\n2. Initialize it with your API key\n3. Replace this placeholder with actual chatbot response"
+
+            except Exception as e:
+                bot_response = f"❌ Error: {str(e)}\n\nPlease check your chatbot configuration."
+
+            # Add bot response to history
+            st.session_state.chat_history.append({
+                'role': 'assistant',
+                'content': bot_response
+            })
+
+            st.rerun()
+
+        if clear_button:
+            st.session_state.chat_history = []
+            st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
 
