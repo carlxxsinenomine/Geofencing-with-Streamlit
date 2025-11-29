@@ -471,40 +471,42 @@ with output_col:
                 'content': user_input
             })
 
-            # Connect to your RAG chatbot
-            try:
-                from chatbot.rag_pipeline import DisasterChatbot
+            # Show thinking animation
+            with st.spinner('🤔 Thinking...'):
+                # Connect to your RAG chatbot
+                try:
+                    from chatbot.rag_pipeline import DisasterChatbot
 
-                # Use absolute path to chroma_db
-                import os
-                import sys
-                from pathlib import Path
+                    # Use absolute path to chroma_db
+                    import os
+                    import sys
+                    from pathlib import Path
 
-                # Get the project root directory (where your Home_Page.py is located)
-                project_root = Path(__file__).parent.parent  # Go up two levels from pages/map.py
+                    # Get the project root directory (where your Home_Page.py is located)
+                    project_root = Path(__file__).parent.parent  # Go up two levels from pages/map.py
 
-                # Database is in the root's chatbot/chroma_db
-                chroma_db_path = project_root / "chatbot" / "chroma_db"
+                    # Database is in the root's chatbot/chroma_db
+                    chroma_db_path = project_root / "chatbot" / "chroma_db"
 
-                # Add debug info
-                # st.write(f"🔍 Project root: {project_root}")
-                # st.write(f"🔍 Database path: {chroma_db_path}")
-                # st.write(f"🔍 Database exists: {chroma_db_path.exists()}")
+                    # Add debug info
+                    # st.write(f"🔍 Project root: {project_root}")
+                    # st.write(f"🔍 Database path: {chroma_db_path}")
+                    # st.write(f"🔍 Database exists: {chroma_db_path.exists()}")
 
-                chatbot = DisasterChatbot(
-                    db_dir=str(chroma_db_path),  # Convert to string
-                    gemini_api_key=st.session_state.gemini_api_key
-                )
+                    chatbot = DisasterChatbot(
+                        db_dir=str(chroma_db_path),  # Convert to string
+                        gemini_api_key=st.session_state.gemini_api_key
+                    )
 
-                response = chatbot.ask(user_input, return_sources=False)
-                bot_response = response['answer']
+                    response = chatbot.ask(user_input, return_sources=False)
+                    bot_response = response['answer']
 
-            except Exception as e:
-                import traceback
+                except Exception as e:
+                    import traceback
 
-                error_details = traceback.format_exc()
-                st.error(f"Detailed error: {error_details}")
-                bot_response = f"❌ Error: {str(e)}\n\nPlease check your API key and database configuration."
+                    error_details = traceback.format_exc()
+                    st.error(f"Detailed error: {error_details}")
+                    bot_response = f"❌ Error: {str(e)}\n\nPlease check your API key and database configuration."
 
             # Add bot response to history
             st.session_state.chat_history.append({
