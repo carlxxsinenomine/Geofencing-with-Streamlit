@@ -23,6 +23,10 @@ st.set_page_config(
 if 'view_mode' not in st.session_state:
     st.session_state.view_mode = 'shapes'  # 'shapes' or 'chat'
 
+# Initialize API key in session state
+if 'gemini_api_key' not in st.session_state:
+    st.session_state.gemini_api_key = ""
+
 # Sidebar toggle
 with st.sidebar:
     st.title("View Options")
@@ -35,6 +39,27 @@ with st.sidebar:
     )
 
     st.session_state.view_mode = view_option
+
+    # Show API key input only when Chat is selected
+    if view_option == 'chat':
+        st.markdown("---")
+        st.subheader("🔑 API Configuration")
+
+        api_key = st.text_input(
+            "Gemini API Key:",
+            value=st.session_state.gemini_api_key,
+            type="password",
+            placeholder="Enter your Google Gemini API key",
+            help="Get your free API key from https://ai.google.dev/"
+        )
+
+        if api_key != st.session_state.gemini_api_key:
+            st.session_state.gemini_api_key = api_key
+
+        if st.session_state.gemini_api_key:
+            st.success("✅ API key configured")
+        else:
+            st.warning("⚠️ Please enter your API key to use the chatbot")
 
     st.markdown("---")
     st.caption("Toggle between database view and chat interface")
@@ -269,28 +294,37 @@ st.markdown("""
         font-size: calc(14px + 0.5vw);
     }
 
-    /* Chat UI Styling */
+    /* Chat UI Styling - Dark Theme */
     .chat-message {
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
-        border: 1px solid #e0e0e0;
+        border: 1px solid #2a2a2a;
     }
 
     .chat-message.user {
-        background-color: #e3f2fd;
+        background-color: #1e3a5f;
         border-left: 4px solid #2196f3;
+        color: #e3f2fd;
     }
 
     .chat-message.assistant {
-        background-color: #f5f5f5;
+        background-color: #1a1a1a;
         border-left: 4px solid #4caf50;
+        color: #e0e0e0;
     }
 
     .chat-header {
         font-weight: bold;
         margin-bottom: 0.5rem;
-        color: #333;
+        color: #ffffff;
+    }
+
+    /* Chat container background */
+    .chat-container {
+        background-color: #0d1117;
+        padding: 1rem;
+        border-radius: 0.5rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -426,26 +460,51 @@ with output_col:
                 clear_button = st.form_submit_button("Clear", use_container_width=True)
 
         if submit_button and user_input:
+            # Check if API key is configured
+            if not st.session_state.gemini_api_key:
+                st.error("❌ Please configure your Gemini API key in the sidebar first!")
+                st.stop()
+
             # Add user message to history
             st.session_state.chat_history.append({
                 'role': 'user',
                 'content': user_input
             })
 
-            # TODO: Connect to your RAG chatbot here
-            # For now, placeholder response
+            # Connect to your RAG chatbot
             try:
-                # Import your chatbot
-                # from rag_pipeline import DisasterChatbot
-                # chatbot = DisasterChatbot()
-                # response = chatbot.ask(user_input, return_sources=False)
-                # bot_response = response['answer']
+                from chatbot.rag_pipeline import DisasterChatbot
 
-                # Placeholder response until you connect the chatbot
-                bot_response = "🔧 **Chatbot Integration Pending**\n\nTo connect your RAG chatbot:\n1. Import DisasterChatbot from rag_pipeline\n2. Initialize it with your API key\n3. Replace this placeholder with actual chatbot response"
+                # Use absolute path to chroma_db
+                import os
+                import sys
+                from pathlib import Path
+
+                # Get the project root directory (where your Home_Page.py is located)
+                project_root = Path(__file__).parent.parent  # Go up two levels from pages/map.py
+
+                # Database is in the root's chatbot/chroma_db
+                chroma_db_path = project_root / "chatbot" / "chroma_db"
+
+                # Add debug info
+                # st.write(f"🔍 Project root: {project_root}")
+                # st.write(f"🔍 Database path: {chroma_db_path}")
+                # st.write(f"🔍 Database exists: {chroma_db_path.exists()}")
+
+                chatbot = DisasterChatbot(
+                    db_dir=str(chroma_db_path),  # Convert to string
+                    gemini_api_key=st.session_state.gemini_api_key
+                )
+
+                response = chatbot.ask(user_input, return_sources=False)
+                bot_response = response['answer']
 
             except Exception as e:
-                bot_response = f"❌ Error: {str(e)}\n\nPlease check your chatbot configuration."
+                import traceback
+
+                error_details = traceback.format_exc()
+                st.error(f"Detailed error: {error_details}")
+                bot_response = f"❌ Error: {str(e)}\n\nPlease check your API key and database configuration."
 
             # Add bot response to history
             st.session_state.chat_history.append({

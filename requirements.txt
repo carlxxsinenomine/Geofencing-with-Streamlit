@@ -1,3 +1,10 @@
+python-dotenv
+langchain-core~=0.3.15
+langchain~=0.3.7
+langchain-google-genai~=2.0.4
+tqdm
+langchain-text-splitters~=0.3.2
+langchain-community~=0.3.3
 branca
 streamlit~=1.51.0
 folium~=0.20.0
