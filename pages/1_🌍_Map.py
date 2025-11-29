@@ -16,16 +16,20 @@ st.set_page_config(
     page_title="Map",
     page_icon="🌍",
     layout="wide",
-    initial_sidebar_state="expanded"  # Changed to show sidebar by default
+    initial_sidebar_state="expanded"
 )
 
 # Initialize session state for view toggle
 if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = 'shapes'  # 'shapes' or 'chat'
+    st.session_state.view_mode = 'shapes'  # 'shapes', 'trails', or 'chat'
 
 # Initialize API key in session state
 if 'gemini_api_key' not in st.session_state:
     st.session_state.gemini_api_key = ""
+
+# Initialize active trail
+if 'active_trail_id' not in st.session_state:
+    st.session_state.active_trail_id = None
 
 # Sidebar toggle
 with st.sidebar:
@@ -33,8 +37,9 @@ with st.sidebar:
 
     view_option = st.radio(
         "Select View:",
-        options=['shapes', 'chat'],
-        format_func=lambda x: '📊 Drawn Shapes Database' if x == 'shapes' else '💬 Chat with AI',
+        options=['shapes', 'trails', 'chat'],
+        format_func=lambda x: '📊 Drawn Shapes Database' if x == 'shapes' else (
+            '🛤️ User Trail Database' if x == 'trails' else '💬 Chat with AI'),
         key='view_toggle'
     )
 
@@ -62,7 +67,7 @@ with st.sidebar:
             st.warning("⚠️ Please enter your API key to use the chatbot")
 
     st.markdown("---")
-    st.caption("Toggle between database view and chat interface")
+    st.caption("Toggle between database view, trail view and chat interface")
 
 m = folium.Map(
     zoom_start=5,
@@ -76,7 +81,7 @@ drawn_shapes = Draw(
     export=False,
     show_geometry_on_click=True,
     draw_options={
-        'polyline': True,
+        'polyline': False,
         'circlemarker': False,
         'marker': False,
     },
@@ -115,6 +120,14 @@ if 'named_shapes' not in st.session_state:
     except Exception as e:
         st.info("There are no Drawn shapes on map")
         st.session_state.named_shapes = []
+
+# Load user trails from database
+if 'user_trails' not in st.session_state:
+    try:
+        st.session_state.user_trails = list(trail_collection.find())
+    except Exception as e:
+        st.info("There are no user trails in database")
+        st.session_state.user_trails = []
 
 if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
@@ -188,6 +201,39 @@ def add_shapes_to_map():
         st.write(f"Error adding features: {e}")
 
 
+def add_trail_to_map(trail):
+    """Add a single trail to the map"""
+    try:
+        if trail.get('geometry', {}).get('type') == 'LineString':
+            coordinates = trail['geometry']['coordinates']
+            # Convert from [lng, lat] to [lat, lng] for folium
+            points = [[coord[1], coord[0]] for coord in coordinates]
+
+            folium.PolyLine(
+                locations=points,
+                color='blue',
+                weight=4,
+                opacity=0.8,
+                popup=f"Trail: {trail.get('properties', {}).get('timestamp', 'Unknown')}"
+            ).add_to(m)
+
+            # Add markers for start and end points
+            if len(points) > 0:
+                folium.Marker(
+                    location=points[0],
+                    popup="Start",
+                    icon=folium.Icon(color='green', icon='play')
+                ).add_to(m)
+
+                folium.Marker(
+                    location=points[-1],
+                    popup="End",
+                    icon=folium.Icon(color='red', icon='stop')
+                ).add_to(m)
+    except Exception as e:
+        pass
+
+
 def save_properties(is_named, drawing):
     if 'properties' not in drawing:
         drawing['properties'] = {}
@@ -236,6 +282,13 @@ def get_drawing_id(drawing):
 
 update_named_shapes()
 add_shapes_to_map()
+
+# Add active trail to map if one is selected
+if st.session_state.active_trail_id:
+    active_trail = next((trail for trail in st.session_state.user_trails
+                         if str(trail.get('_id')) == st.session_state.active_trail_id), None)
+    if active_trail:
+        add_trail_to_map(active_trail)
 
 gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
@@ -414,6 +467,45 @@ with output_col:
         else:
             st.info("No shapes drawn yet. Draw a shape on the map to get started!")
 
+    elif st.session_state.view_mode == 'trails':
+        # USER TRAIL DATABASE VIEW
+        st.subheader("🛤️ User Trail Database")
+        if st.session_state.user_trails:
+            for idx, trail in enumerate(st.session_state.user_trails):
+                timestamp = trail.get('properties', {}).get('timestamp', 'Unknown')
+                trail_id = str(trail.get('_id'))
+                is_active = st.session_state.active_trail_id == trail_id
+
+                with st.container():
+                    data, buttons = st.columns([1, 1])
+                    with data:
+                        with st.expander(f"{idx + 1}. {timestamp}", expanded=False):
+                            st.json(trail.get('properties'), expanded=True)
+                    with buttons:
+                        s_b, d_b = st.columns([1, 1])
+                        with s_b:
+                            button_type = "secondary" if is_active else "primary"
+                            button_text = "Hide" if is_active else "Show"
+                            if st.button(button_text, type=button_type, key=f"trail_{idx + 1}_show_button",
+                                         use_container_width=True):
+                                if is_active:
+                                    st.session_state.active_trail_id = None
+                                else:
+                                    st.session_state.active_trail_id = trail_id
+                                st.rerun()
+                        with d_b:
+                            if st.button("Delete", key=f"trail_{idx + 1}_del_button", use_container_width=True):
+                                try:
+                                    trail_collection.delete_one({'_id': trail.get('_id')})
+                                    st.session_state.user_trails.pop(idx)
+                                    if st.session_state.active_trail_id == trail_id:
+                                        st.session_state.active_trail_id = None
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error deleting trail: {e}")
+        else:
+            st.info("No user trails recorded yet. Start GPS tracking to create trails!")
+
     else:
         # CHAT UI VIEW
         st.subheader("💬 Disaster Risk Chatbot")
@@ -487,11 +579,6 @@ with output_col:
 
                     # Database is in the root's chatbot/chroma_db
                     chroma_db_path = project_root / "chatbot" / "chroma_db"
-
-                    # Add debug info
-                    # st.write(f"🔍 Project root: {project_root}")
-                    # st.write(f"🔍 Database path: {chroma_db_path}")
-                    # st.write(f"🔍 Database exists: {chroma_db_path.exists()}")
 
                     chatbot = DisasterChatbot(
                         db_dir=str(chroma_db_path),  # Convert to string
