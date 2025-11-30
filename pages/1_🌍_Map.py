@@ -447,6 +447,7 @@ with output_col:
         if 'user_lat' in st.session_state and 'user_lng' in st.session_state:
             w = WeatherHandler()
 
+            # Wrap everything in a try-except block
             try:
                 with st.spinner("Fetching weather data..."):
                     current_forecast = w.get_current_forecast(
@@ -459,31 +460,24 @@ with output_col:
                         long=st.session_state.user_lng
                     )
 
-                # ✅ Check if API call succeeded
+                # Check if data was successfully fetched
                 if not current_forecast:
-                    st.error("⚠️ Weather API Error: Unable to fetch data")
-                    st.info("""
-                    **Possible issues:**
-                    - API key not configured in Streamlit secrets
-                    - Invalid or expired API key
-                    - API rate limit exceeded
-
-                    **To fix:**
-                    1. Go to Settings → Secrets
-                    2. Add: `WEATHER_API = "your_key_here"`
-                    """)
+                    st.error("⚠️ Unable to fetch weather data. Please check:")
+                    st.info("• Your WEATHER_API key in .env\n• Your internet connection\n• API rate limits")
                     if st.button("🔄 Retry", use_container_width=True):
                         st.rerun()
-                    st.stop()  # ✅ Stop execution here
+                    st.stop()
 
-                # Rest of your weather display code...
                 if not coordinates_result:
                     coordinates_info = f"Lat: {st.session_state.user_lat:.4f}, Lng: {st.session_state.user_lng:.4f}"
                 else:
                     coordinates_info = coordinates_result.get('name', 'Unknown Location')
 
+                # Location name
                 st.markdown(f"### 📍 {coordinates_info}")
                 st.markdown("---")
+
+                # Current Weather Section
                 st.markdown("#### ☀️ Current Weather")
 
                 condition = current_forecast.get('condition', {})
@@ -491,64 +485,66 @@ with output_col:
                 weather_icon = condition.get('icon', '')
                 precip_mm = current_forecast.get('precip_mm', 0.0)
 
+                # Weather display in columns
+                col1, col2 = st.columns([1, 3])
+
+                with col1:
+                    if weather_icon:
+                        st.markdown(f"<img src='https:{weather_icon}' width='80'>", unsafe_allow_html=True)
+
+                with col2:
+                    st.markdown(f"### {weather_text}")
+                    st.markdown(f"💧 **Precipitation:** {precip_mm} mm")
+
+                st.markdown("---")
+
+                with st.spinner("Fetching Panahon Advisory..."):
+                    panahon_advisory = w.get_panahon_advisory(coordinates_info)
+
+                # PAGASA Advisories Section
+                st.markdown("#### 📢 PAGASA Weather Advisories")
+
+                has_advisory = False
+
+                # Rainfall Advisory
+                if panahon_advisory.get('Rainfall'):
+                    has_advisory = True
+                    with st.expander("🌧️ Rainfall Advisory", expanded=True):
+                        st.info(panahon_advisory['Rainfall'])
+
+                # Thunderstorm Advisory
+                if panahon_advisory.get('Thunderstorm'):
+                    has_advisory = True
+                    with st.expander("⚡ Thunderstorm Advisory", expanded=True):
+                        st.warning(panahon_advisory['Thunderstorm'])
+
+                # Flood Advisory
+                if panahon_advisory.get('Flood'):
+                    has_advisory = True
+                    with st.expander("🌊 Flood Advisory", expanded=True):
+                        st.error(panahon_advisory['Flood'])
+
+                # Tropical Cyclone Advisory
+                if panahon_advisory.get('Tropical'):
+                    has_advisory = True
+                    with st.expander("🌀 Tropical Cyclone Advisory", expanded=True):
+                        st.error(panahon_advisory['Tropical'])
+
+                # If no advisories
+                if not has_advisory:
+                    st.success("✅ No active weather advisories for your area")
+
+                st.markdown("---")
+
+                # Refresh button
+                if st.button("🔄 Refresh Weather Data", use_container_width=True):
+                    st.rerun()
+
             except Exception as e:
-                st.error(f"❌ Unexpected error: {str(e)}")
+                st.error(f"❌ Error loading weather information: {str(e)}")
+                st.info("Please try again or check your API configuration")
                 if st.button("🔄 Retry", use_container_width=True):
                     st.rerun()
-            # Weather display in columns
-            col1, col2 = st.columns([1, 3])
-
-            with col1:
-                if weather_icon:
-                    st.markdown(f"<img src='https:{weather_icon}' width='80'>", unsafe_allow_html=True)
-
-            with col2:
-                st.markdown(f"### {weather_text}")
-                st.markdown(f"💧 **Precipitation:** {precip_mm} mm")
-
-            st.markdown("---")
-
-            with st.spinner("Fetching Panahon Advisory..."):
-                panahon_advisory = w.get_panahon_advisory(coordinates_info)
-
-            # PAGASA Advisories Section
-            st.markdown("#### 📢 PAGASA Weather Advisories")
-
-            has_advisory = False
-
-            # Rainfall Advisory
-            if panahon_advisory.get('Rainfall'):
-                has_advisory = True
-                with st.expander("🌧️ Rainfall Advisory", expanded=True):
-                    st.info(panahon_advisory['Rainfall'])
-
-            # Thunderstorm Advisory
-            if panahon_advisory.get('Thunderstorm'):
-                has_advisory = True
-                with st.expander("⚡ Thunderstorm Advisory", expanded=True):
-                    st.warning(panahon_advisory['Thunderstorm'])
-
-            # Flood Advisory
-            if panahon_advisory.get('Flood'):
-                has_advisory = True
-                with st.expander("🌊 Flood Advisory", expanded=True):
-                    st.error(panahon_advisory['Flood'])
-
-            # Tropical Cyclone Advisory
-            if panahon_advisory.get('Tropical'):
-                has_advisory = True
-                with st.expander("🌀 Tropical Cyclone Advisory", expanded=True):
-                    st.error(panahon_advisory['Tropical'])
-
-            # If no advisories
-            if not has_advisory:
-                st.success("✅ No active weather advisories for your area")
-
-            st.markdown("---")
-
-            # Refresh button
-            if st.button("🔄 Refresh Weather Data", use_container_width=True):
-                st.rerun()
 
 
         if st.button("Check Weather"):
