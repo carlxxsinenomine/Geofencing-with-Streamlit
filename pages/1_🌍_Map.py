@@ -455,9 +455,12 @@ with output_col:
             #     f"Latitude: {st.session_state.user_lat:.6f}\n"
             #     f"Longitude: {st.session_state.user_lng:.6f}"
             # )
-
-            coordinates_info = w.get_coordinates_info(lat=st.session_state.user_lat,
-                                                      long=st.session_state.user_lng).get('name')
+            coordinates_result = w.get_coordinates_info(
+                lat=st.session_state.user_lat,
+                long=st.session_state.user_lng
+            )
+            coordinates_info = coordinates_result.get('name',
+                                                      'Unknown Location') if coordinates_result else 'Unknown Location'
 
             # Location name
             st.markdown(f"### 📍 {coordinates_info}")
