@@ -209,7 +209,6 @@ def add_shapes_to_map():
 
 def add_trail_to_map():
     trail = st.session_state.active_trail
-    """Add a single trail to the map"""
     try:
         if trail.get('geometry', {}).get('type') == 'LineString':
             coordinates = trail['geometry']['coordinates']
