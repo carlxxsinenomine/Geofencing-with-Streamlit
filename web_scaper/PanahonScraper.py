@@ -97,21 +97,22 @@ class PanahonScraper:
             WebDriverWait(self.__driver, timeout).until(content_loaded)
 
             content = popup.text
-            print("content loaded successfully:")
-            print(content)
+            # print("content loaded successfully:")
+            # print(content)
 
             return content
 
         except TimeoutException:
-            print("content didn't load within timeout period")
+            # print("content didn't load within timeout period")
             # Try to capture what's actually there
             try:
                 popup = self.__driver.find_element(By.CLASS_NAME, "ol-popup-content")
-                print(f"Popup found but content was: '{popup.text}'")
-                self.__driver.save_screenshot("popup_timeout_debug.png")
+                # print(f"Popup found but content was: '{popup.text}'")
+                # self.__driver.save_screenshot("popup_timeout_debug.png")
             except:
-                print("Popup element not found at all")
-                self.__driver.save_screenshot("no_popup_debug.png")
+                pass
+                # print("Popup element not found at all")
+                # self.__driver.save_screenshot("no_popup_debug.png")
             return None
 
     def __search_place(self, location_name):
@@ -123,7 +124,7 @@ class PanahonScraper:
         search_input.clear()
         search_input.send_keys(location_name)
 
-        print(f"Typed '{location_name}' into search box")
+        # print(f"Typed '{location_name}' into search box")
 
         # Press Enter key
         search_input.send_keys(Keys.ENTER)

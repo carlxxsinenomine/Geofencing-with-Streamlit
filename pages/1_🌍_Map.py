@@ -2,7 +2,7 @@ import folium
 import pymongo
 import streamlit as st
 import streamlit_folium as st_folium
-
+from handlers.weather_handler import WeatherHandler
 from folium.plugins import Draw, Fullscreen
 
 # Initialize geocoder
@@ -11,6 +11,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from map.gps_tracking_control import GPSTrackingControl
+from streamlit_js_eval import streamlit_js_eval
 
 st.set_page_config(
     page_title="Map",
@@ -21,7 +22,7 @@ st.set_page_config(
 
 # Initialize session state for view toggle
 if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = 'shapes'  # 'shapes', 'trails', or 'chat'
+    st.session_state.view_mode = 'weather'  # 'shapes', 'trails', or 'chat'
 
 # Initialize API key in session state
 if 'gemini_api_key' not in st.session_state:
@@ -37,8 +38,9 @@ with st.sidebar:
 
     view_option = st.radio(
         "Select View:",
-        options=['shapes', 'trails', 'chat'],
-        format_func=lambda x: '📊 Drawn Shapes Database' if x == 'shapes' else (
+        options=['weather', 'shapes', 'trails', 'chat'],
+        format_func=lambda x: '⛅ Weather Information' if x == 'weather' else  (
+            '📊 Drawn Shapes Database' if x == 'shapes' else
             '🛤️ User Trail Database' if x == 'trails' else '💬 Chat with AI'),
         key='view_toggle'
     )
@@ -436,7 +438,153 @@ with output_col:
             st.markdown("---")
 
     # Conditional rendering based on view mode
-    if st.session_state.view_mode == 'shapes':
+    if st.session_state.view_mode == 'weather':
+        st.markdown('### ⛅ Weather Information')
+
+        # Initialize states
+        if 'request_location' not in st.session_state:
+            st.session_state.request_location = False
+
+        # Show success message FIRST if location exists
+        if 'user_lat' in st.session_state and 'user_lng' in st.session_state:
+            w = WeatherHandler()
+            current_forecast = w.get_current_forecast(lat=st.session_state.user_lat, lng=st.session_state.user_lng)
+
+
+            # # Location header with success message
+            # st.success(
+            #     f"📍 Location found!\n"
+            #     f"Latitude: {st.session_state.user_lat:.6f}\n"
+            #     f"Longitude: {st.session_state.user_lng:.6f}"
+            # )
+
+            coordinates_info = w.get_coordinates_info(lat=st.session_state.user_lat,
+                                                      long=st.session_state.user_lng).get('name')
+
+            # Location name
+            st.markdown(f"### 📍 {coordinates_info}")
+
+            st.markdown("---")
+
+            # Current Weather Section
+            st.markdown("#### ☀️ Current Weather")
+
+            condition = current_forecast.get('condition', {})
+            weather_text = condition.get('text', 'N/A')
+            weather_icon = condition.get('icon', '')
+            precip_mm = current_forecast.get('precip_mm', 0.0)
+
+            # Weather display in columns
+            col1, col2 = st.columns([1, 3])
+
+            with col1:
+                if weather_icon:
+                    st.markdown(f"<img src='https:{weather_icon}' width='80'>", unsafe_allow_html=True)
+
+            with col2:
+                st.markdown(f"### {weather_text}")
+                st.markdown(f"💧 **Precipitation:** {precip_mm} mm")
+
+            st.markdown("---")
+
+            with st.spinner("Fetching Panahon Advisory..."):
+                panahon_advisory = w.get_panahon_advisory(coordinates_info)
+
+            # PAGASA Advisories Section
+            st.markdown("#### 📢 PAGASA Weather Advisories")
+
+            has_advisory = False
+
+            # Rainfall Advisory
+            if panahon_advisory.get('Rainfall'):
+                has_advisory = True
+                with st.expander("🌧️ Rainfall Advisory", expanded=True):
+                    st.info(panahon_advisory['Rainfall'])
+
+            # Thunderstorm Advisory
+            if panahon_advisory.get('Thunderstorm'):
+                has_advisory = True
+                with st.expander("⚡ Thunderstorm Advisory", expanded=True):
+                    st.warning(panahon_advisory['Thunderstorm'])
+
+            # Flood Advisory
+            if panahon_advisory.get('Flood'):
+                has_advisory = True
+                with st.expander("🌊 Flood Advisory", expanded=True):
+                    st.error(panahon_advisory['Flood'])
+
+            # Tropical Cyclone Advisory
+            if panahon_advisory.get('Tropical'):
+                has_advisory = True
+                with st.expander("🌀 Tropical Cyclone Advisory", expanded=True):
+                    st.error(panahon_advisory['Tropical'])
+
+            # If no advisories
+            if not has_advisory:
+                st.success("✅ No active weather advisories for your area")
+
+            st.markdown("---")
+
+            # Refresh button
+            if st.button("🔄 Refresh Weather Data", use_container_width=True):
+                st.rerun()
+
+        if st.button("Check Weather"):
+            st.session_state.request_location = True
+            st.rerun()
+
+        # Execute JS only after button click
+        if st.session_state.request_location:
+            result = streamlit_js_eval(
+                js_expressions="""
+                new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject('Geolocation not supported');
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve({
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                                accuracy: position.coords.accuracy
+                            });
+                        },
+                        (error) => {
+                            let message = 'Unknown error';
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    message = 'Location permission denied';
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    message = 'Location unavailable';
+                                    break;
+                                case error.TIMEOUT:
+                                    message = 'Location request timeout';
+                                    break;
+                            }
+                            reject(message);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+                """,
+                want_output=True,
+                key='get_location'
+            )
+
+            if result:
+                st.session_state.user_lat = result['lat']
+                st.session_state.user_lng = result['lng']
+                st.session_state.request_location = False
+                st.rerun()
+
+    elif st.session_state.view_mode == 'shapes':
         # DRAWN SHAPES DATABASE VIEW
         st.subheader("📊 Drawn Shapes Database")
         if st.session_state.named_shapes:

@@ -32,30 +32,10 @@ class WeatherHandler:
         panahon.start_scraping(location=location)
         return panahon.get_data()
 
-    def get_windy_forecast(self):
-        params = {
-            "lat": 13.143245,
-            "lon": 123.741798,
-            "model": "gfs",
-            "parameters": ["precip", "convPrecip", "ptype", "cape"],  # Should be a list
-            "levels": ["surface"],  # This should work, but try "surface" if issues persist
-            "key": WINDY_API
-        }
-
-        try:
-            response = requests.post(self.windy_api_base, json=params)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Windy API Error: {e}")
-            if hasattr(response, 'text'):
-                print(f"Response: {response.text}")
-            return None
-
-
-
-    def get_marine_forecast(self):
-        pass
+    #
+    #
+    # def get_marine_forecast(self):
+    #     pass
 
     """
     For weather api
@@ -74,21 +54,7 @@ class WeatherHandler:
             print(f"API Error: {e}")
             return None
 
-
-    def get_forecast_alert(self):
-        params = {
-            'key': WEATHER_API,
-            'q': f"{13.143245},{123.741798}"  # Format: "latitude,longitude"
-        }
-        try:
-            response = requests.get(self.weatherapi_base_alert, params=params)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"API Error: {e}")
-            return None
-
-    def get_coordinates_info(self, lat=13.539201, long=118.696289):
+    def get_coordinates_info(self, lat= 14.103029, long=122.932497):
         params = {
             'key': WEATHER_API,
             'q': f"{lat},{long}"  # Format: "latitude,longitude"
@@ -111,6 +77,3 @@ class WeatherHandler:
         except Exception as e:
             print(f"Error: {e}")
             return None
-
-# w = WeatherHandler()
-# print(w.get_panahon_advisory("Legaspi") )
