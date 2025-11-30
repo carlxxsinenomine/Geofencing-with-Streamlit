@@ -231,7 +231,7 @@ def add_trail_to_map(trail):
                     icon=folium.Icon(color='red', icon='stop')
                 ).add_to(m)
     except Exception as e:
-        pass
+        pass # Pass kasii ewann may error eh ala naman prob HAHAHAAHAHHHAHAH
 
 
 def save_properties(is_named, drawing):
