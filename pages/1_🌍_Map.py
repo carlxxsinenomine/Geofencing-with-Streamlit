@@ -20,18 +20,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state for view toggle
-if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = 'weather'  # 'shapes', 'trails', or 'chat'
-
-# Initialize API key in session state
-if 'gemini_api_key' not in st.session_state:
-    st.session_state.gemini_api_key = ""
-
-# Initialize active trail
-if 'active_trail_id' not in st.session_state:
-    st.session_state.active_trail_id = None
-
 # Sidebar toggle
 with st.sidebar:
     st.title("View Options")
@@ -126,7 +114,12 @@ if 'named_shapes' not in st.session_state:
 # Load user trails from database
 if 'user_trails' not in st.session_state:
     try:
-        st.session_state.user_trails = list(trail_collection.find())
+        st.session_state.user_trails = [
+            {'type': trail['type'],
+             'properties': trail['properties'],
+             'geometry': trail['geometry']}
+            for trail in trail_collection.find()
+        ]
     except Exception as e:
         st.info("There are no user trails in database")
         st.session_state.user_trails = []
@@ -140,6 +133,17 @@ if 'processed_shape_ids' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
+# Initialize session state for view toggle
+if 'view_mode' not in st.session_state:
+    st.session_state.view_mode = 'weather'  # 'shapes', 'trails', or 'chat'
+
+# Initialize API key in session state
+if 'gemini_api_key' not in st.session_state:
+    st.session_state.gemini_api_key = ""
+
+# Initialize active trail
+if 'active_trail' not in st.session_state:
+    st.session_state.active_trail = None
 
 # Update each feature in the named_shapes with its corresponding color based on labels
 def update_named_shapes():
@@ -203,16 +207,17 @@ def add_shapes_to_map():
         st.write(f"Error adding features: {e}")
 
 
-def add_trail_to_map(trail):
+def add_trail_to_map():
+    trail = st.session_state.active_trail
     """Add a single trail to the map"""
     try:
         if trail.get('geometry', {}).get('type') == 'LineString':
             coordinates = trail['geometry']['coordinates']
             # Convert from [lng, lat] to [lat, lng] for folium
-            points = [[coord[1], coord[0]] for coord in coordinates]
+            points = [[coord[0], coord[1]] for coord in coordinates]
 
             folium.PolyLine(
-                locations=points,
+                locations=trail.get('geometry', {}).get('coordinates'),
                 color='blue',
                 weight=4,
                 opacity=0.8,
@@ -284,13 +289,6 @@ def get_drawing_id(drawing):
 
 update_named_shapes()
 add_shapes_to_map()
-
-# Add active trail to map if one is selected
-if st.session_state.active_trail_id:
-    active_trail = next((trail for trail in st.session_state.user_trails
-                         if str(trail.get('_id')) == st.session_state.active_trail_id), None)
-    if active_trail:
-        add_trail_to_map(active_trail)
 
 gps_control = GPSTrackingControl(st.session_state.named_shapes)
 m.add_child(gps_control)
@@ -384,6 +382,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+add_trail_to_map()
 st.markdown('<div class="main-column">', unsafe_allow_html=True)
 
 map_col, output_col = st.columns([2, 1])
@@ -621,8 +620,8 @@ with output_col:
         if st.session_state.user_trails:
             for idx, trail in enumerate(st.session_state.user_trails):
                 timestamp = trail.get('properties', {}).get('timestamp', 'Unknown')
-                trail_id = str(trail.get('_id'))
-                is_active = st.session_state.active_trail_id == trail_id
+                # trail_i = f"{timedstamp}_{idx}"
+                is_active = st.session_state.active_trail == trail
 
                 with st.container():
                     data, buttons = st.columns([1, 1])
@@ -637,20 +636,22 @@ with output_col:
                             if st.button(button_text, type=button_type, key=f"trail_{idx + 1}_show_button",
                                          use_container_width=True):
                                 if is_active:
-                                    st.session_state.active_trail_id = None
+                                    st.session_state.active_trail = None
                                 else:
-                                    st.session_state.active_trail_id = trail_id
+                                    st.session_state.active_trail = trail
                                 st.rerun()
+
                         with d_b:
                             if st.button("Delete", key=f"trail_{idx + 1}_del_button", use_container_width=True):
                                 try:
-                                    trail_collection.delete_one({'_id': trail.get('_id')})
+                                    trail_collection.delete_one({'geometry': trail.get('geometry')})
                                     st.session_state.user_trails.pop(idx)
-                                    if st.session_state.active_trail_id == trail_id:
-                                        st.session_state.active_trail_id = None
+                                    if st.session_state.active_trail == trail:
+                                        st.session_state.active_trail = None
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Error deleting trail: {e}")
+
         else:
             st.info("No user trails recorded yet. Start GPS tracking to create trails!")
 
