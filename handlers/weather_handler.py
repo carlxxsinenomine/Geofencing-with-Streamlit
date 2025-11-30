@@ -40,39 +40,56 @@ class WeatherHandler:
     """
     For weather api
     """
+
     def get_current_forecast(self, lat=13.539201, lng=118.696289):
         params = {
             'key': WEATHER_API,
-            'q': f"{13.143245},{123.741798}"  # Format: "latitude,longitude"
+            'q': f"{lat},{lng}"
         }
         try:
             response = requests.get(self.weatherapi_base_current_forecast, params=params)
             response.raise_for_status()
-            return (response.json())['current']
+            data = response.json()
+
+            # Check if 'current' key exists
+            if 'current' not in data:
+                print(f"Warning: 'current' key not found in response: {data}")
+                return None
+
+            return data['current']
 
         except requests.exceptions.RequestException as e:
             print(f"API Error: {e}")
             return None
+        except KeyError as e:
+            print(f"Data parsing error: {e}")
+            return None
 
-    def get_coordinates_info(self, lat= 14.103029, long=122.932497):
+    def get_coordinates_info(self, lat=14.103029, long=122.932497):
         params = {
             'key': WEATHER_API,
-            'q': f"{lat},{long}"  # Format: "latitude,longitude"
+            'q': f"{lat},{long}"
         }
 
         try:
             response = requests.get(self.weatherapi_base_current_forecast, params=params)
+            response.raise_for_status()  # ✅ Add this to catch HTTP errors
             data = response.json()
+
+            # Check if location exists
+            if 'location' not in data:
+                print(f"Warning: 'location' key not found in response")
+                return None
 
             location = data['location']
             return {
-                'name': location['name'],
-                'region': location['region'],  # This is the state/province
-                'country': location['country'],
-                'state_province': location['region'],  # Alias for clarity
-                'timezone': location['tz_id'],
-                'lat': location['lat'],
-                'lon': location['lon']
+                'name': location.get('name', 'Unknown'),
+                'region': location.get('region', 'Unknown'),
+                'country': location.get('country', 'Unknown'),
+                'state_province': location.get('region', 'Unknown'),
+                'timezone': location.get('tz_id', 'Unknown'),
+                'lat': location.get('lat', lat),
+                'lon': location.get('lon', long)
             }
         except Exception as e:
             print(f"Error: {e}")

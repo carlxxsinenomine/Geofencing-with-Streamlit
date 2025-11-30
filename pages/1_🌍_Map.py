@@ -446,16 +446,15 @@ with output_col:
         # Show success message FIRST if location exists
         if 'user_lat' in st.session_state and 'user_lng' in st.session_state:
             w = WeatherHandler()
-            current_forecast = w.get_current_forecast(
-                lat=st.session_state.user_lat,
-                lng=st.session_state.user_lng
-            )
+            current_forecast = w.get_current_forecast(lat=st.session_state.user_lat, lng=st.session_state.user_lng)
 
-            if not current_forecast:
-                st.error("⚠️ Unable to fetch weather data. Please try again later.")
-                st.stop()
 
-            # Get coordinates info
+            # # Location header with success message
+            # st.success(
+            #     f"📍 Location found!\n"
+            #     f"Latitude: {st.session_state.user_lat:.6f}\n"
+            #     f"Longitude: {st.session_state.user_lng:.6f}"
+            # )
             coordinates_result = w.get_coordinates_info(
                 lat=st.session_state.user_lat,
                 long=st.session_state.user_lng
@@ -463,8 +462,10 @@ with output_col:
             coordinates_info = coordinates_result.get('name',
                                                       'Unknown Location') if coordinates_result else 'Unknown Location'
 
+
             # Location name
             st.markdown(f"### 📍 {coordinates_info}")
+
             st.markdown("---")
 
             # Current Weather Section
