@@ -446,36 +446,55 @@ with output_col:
         # Show success message FIRST if location exists
         if 'user_lat' in st.session_state and 'user_lng' in st.session_state:
             w = WeatherHandler()
-            current_forecast = w.get_current_forecast(lat=st.session_state.user_lat, lng=st.session_state.user_lng)
 
+            try:
+                with st.spinner("Fetching weather data..."):
+                    current_forecast = w.get_current_forecast(
+                        lat=st.session_state.user_lat,
+                        lng=st.session_state.user_lng
+                    )
 
-            # # Location header with success message
-            # st.success(
-            #     f"📍 Location found!\n"
-            #     f"Latitude: {st.session_state.user_lat:.6f}\n"
-            #     f"Longitude: {st.session_state.user_lng:.6f}"
-            # )
-            coordinates_result = w.get_coordinates_info(
-                lat=st.session_state.user_lat,
-                long=st.session_state.user_lng
-            )
-            coordinates_info = coordinates_result.get('name',
-                                                      'Unknown Location') if coordinates_result else 'Unknown Location'
+                    coordinates_result = w.get_coordinates_info(
+                        lat=st.session_state.user_lat,
+                        long=st.session_state.user_lng
+                    )
 
+                # ✅ Check if API call succeeded
+                if not current_forecast:
+                    st.error("⚠️ Weather API Error: Unable to fetch data")
+                    st.info("""
+                    **Possible issues:**
+                    - API key not configured in Streamlit secrets
+                    - Invalid or expired API key
+                    - API rate limit exceeded
 
-            # Location name
-            st.markdown(f"### 📍 {coordinates_info}")
+                    **To fix:**
+                    1. Go to Settings → Secrets
+                    2. Add: `WEATHER_API = "your_key_here"`
+                    """)
+                    if st.button("🔄 Retry", use_container_width=True):
+                        st.rerun()
+                    st.stop()  # ✅ Stop execution here
 
-            st.markdown("---")
+                # Rest of your weather display code...
+                if not coordinates_result:
+                    coordinates_info = f"Lat: {st.session_state.user_lat:.4f}, Lng: {st.session_state.user_lng:.4f}"
+                else:
+                    coordinates_info = coordinates_result.get('name', 'Unknown Location')
 
-            # Current Weather Section
-            st.markdown("#### ☀️ Current Weather")
+                st.markdown(f"### 📍 {coordinates_info}")
+                st.markdown("---")
+                st.markdown("#### ☀️ Current Weather")
 
-            condition = current_forecast.get('condition', {})
-            weather_text = condition.get('text', 'N/A')
-            weather_icon = condition.get('icon', '')
-            precip_mm = current_forecast.get('precip_mm', 0.0)
+                condition = current_forecast.get('condition', {})
+                weather_text = condition.get('text', 'N/A')
+                weather_icon = condition.get('icon', '')
+                precip_mm = current_forecast.get('precip_mm', 0.0)
 
+            except Exception as e:
+                st.error(f"❌ Unexpected error: {str(e)}")
+                if st.button("🔄 Retry", use_container_width=True):
+                    st.rerun()
             # Weather display in columns
             col1, col2 = st.columns([1, 3])
 
@@ -530,6 +549,7 @@ with output_col:
             # Refresh button
             if st.button("🔄 Refresh Weather Data", use_container_width=True):
                 st.rerun()
+
 
         if st.button("Check Weather"):
             st.session_state.request_location = True
