@@ -244,7 +244,7 @@ def save_properties(is_named, drawing):
     if 'properties' not in drawing:
         drawing['properties'] = {}
 
-    drawing['properties']['is_active'] = False
+    drawing['properties']['is_active'] = True
 
     if is_named:
         drawing['properties']['name'] = shape_name
