@@ -20,7 +20,7 @@ class PanahonScraper:
         self.__data = {}
 
     def __setup_driver(self):
-        """Initialize Chrome driver with proper options for Streamlit Cloud"""
+        """Initialize Chrome driver with proper options"""
         self.__chrome_options.add_argument("--headless=new")
         self.__chrome_options.add_argument("--window-size=1920,1080")
         self.__chrome_options.add_argument("--no-sandbox")
@@ -35,14 +35,29 @@ class PanahonScraper:
         self.__chrome_options.add_experimental_option('useAutomationExtension', False)
 
         try:
-            # Use ChromeDriverManager with CHROMIUM type for Streamlit Cloud
-            service = Service(
-                ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-            )
+            # For local Windows: use regular Chrome
+            # For Streamlit Cloud: use CHROMIUM
+            import platform
+            import os
+
+            if platform.system() == "Windows" or os.path.exists(
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"):
+                # Local development - use regular Chrome
+                print("🖥️ Running on Windows - using Chrome")
+                service = Service(ChromeDriverManager().install())
+            else:
+                # Streamlit Cloud - use Chromium
+                print("☁️ Running on cloud - using Chromium")
+                service = Service(
+                    ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+                )
+
             self.__driver = webdriver.Chrome(service=service, options=self.__chrome_options)
+            print("✅ Chrome driver initialized successfully")
             return True
+
         except Exception as e:
-            print(f"Error setting up Chrome driver: {e}")
+            print(f"❌ Error setting up Chrome driver: {e}")
             self.__driver = None
             return False
 
@@ -53,13 +68,16 @@ class PanahonScraper:
                 print("Failed to initialize Chrome driver")
                 return
 
+            print(f"🌐 Navigating to {self.__panahon_url}")
             self.__driver.get(self.__panahon_url)
 
             WebDriverWait(self.__driver, 15).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
+            print("✅ Page loaded")
 
             # Open Notification
+            print("🔔 Clicking notification button...")
             notification_button = WebDriverWait(self.__driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "button.notification-button"))
             )
@@ -72,15 +90,20 @@ class PanahonScraper:
             names = ['Rainfall', 'Thunderstorm', 'Flood', 'Tropical']
 
             for i in range(4):
+                print(f"\n📊 Processing {names[i]}...")
                 self.__select_type(index=i)
                 show_button.click()
                 time.sleep(2)
                 self.__search_place(location)
 
-                self.__data[names[i]] = self.__wait_and_extract_content()
+                content = self.__wait_and_extract_content()
+                self.__data[names[i]] = content
+                print(f"   Result: {'✅ Found' if content else '❌ None'}")
+
+            print(f"\n✅ Scraping complete!")
 
         except Exception as e:
-            print(f"Error during scraping: {str(e)}")
+            print(f"❌ Error during scraping: {str(e)}")
             import traceback
             traceback.print_exc()
 
@@ -89,8 +112,9 @@ class PanahonScraper:
             if self.__driver is not None:
                 try:
                     self.__driver.quit()
+                    print("🔒 Browser closed")
                 except Exception as e:
-                    print(f"Error closing driver: {e}")
+                    print(f"⚠️ Error closing driver: {e}")
 
     def get_data(self):
         """Return scraped data or empty structure if failed"""
@@ -127,15 +151,10 @@ class PanahonScraper:
             return content if content else None
 
         except TimeoutException:
-            print("Content didn't load within timeout period")
-            try:
-                popup = self.__driver.find_element(By.CLASS_NAME, "ol-popup-content")
-                print(f"Popup found but content was: '{popup.text}'")
-            except:
-                print("Popup element not found at all")
+            print("   ⏱️ Timeout: Content didn't load")
             return None
         except Exception as e:
-            print(f"Error extracting content: {e}")
+            print(f"   ⚠️ Error extracting content: {e}")
             return None
 
     def __search_place(self, location_name):
@@ -150,7 +169,7 @@ class PanahonScraper:
 
             time.sleep(3)
         except Exception as e:
-            print(f"Error searching place: {e}")
+            print(f"   ⚠️ Error searching place: {e}")
 
     def __select_type(self, index=None):
         try:
@@ -158,4 +177,4 @@ class PanahonScraper:
             dropdown = Select(select_element)
             dropdown.select_by_index(index=index)
         except Exception as e:
-            print(f"Error selecting type: {e}")
+            print(f"   ⚠️ Error selecting type: {e}")
