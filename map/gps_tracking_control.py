@@ -195,7 +195,7 @@ class GPSTrackingControl(MacroElement):
                         var isInsideFence = isPointInsideGeofence_{{ this.get_name() }}(lng, lat);
     
                         if (isInsideFence) {
-                            // alert("user inside " + breachedFence_{{ this.get_name() }});
+                            alert("user inside " + breachedFence_{{ this.get_name() }});
                             fetch('https://flask-server-production-c983.up.railway.app/log-alert-event', {
                                 method: 'POST',
                                 headers: {
