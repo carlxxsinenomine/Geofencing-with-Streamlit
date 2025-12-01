@@ -194,7 +194,7 @@ with col1:
                 <li>Real-time weather data monitoring via API</li>
                 <li>Smart geofencing for location-based alerts</li>
                 <li>Automated data scraping and collection</li>
-                <li>RAG-powered chatbot for weather queries</li>
+                <li>RAG-powered chatbot for Disaster Readiness, Reduction, and Preparedness</li>
                 <li>Email notifications and alert system</li>
                 <li>Interactive data visualization</li>
             </ul>
