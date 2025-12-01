@@ -68,7 +68,9 @@ class DisasterDataIngestion:
             'resilience': 'Resilience',
             'sovereign': 'Governance',
             'vulnerability': 'Vulnerability',
-            'governance': 'Governance'
+            'governance': 'Governance',
+            'geos': 'GeoS',
+            'earthquake': 'Earthquake'
         }
 
         for keyword, disaster_type in disaster_keywords.items():

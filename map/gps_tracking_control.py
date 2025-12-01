@@ -132,7 +132,7 @@ class GPSTrackingControl(MacroElement):
             
             function sendDataToServer_{{ this.get_name() }}() {
                 // Send data to API
-                fetch('https://flask-server-production-c983.up.railway.app//save-tracking', {
+                fetch('https://flask-server-production-c983.up.railway.app/save-tracking', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -195,8 +195,8 @@ class GPSTrackingControl(MacroElement):
                         var isInsideFence = isPointInsideGeofence_{{ this.get_name() }}(lng, lat);
     
                         if (isInsideFence) {
-                            # alert("user inside " + breachedFence_{{ this.get_name() }});
-                            fetch('https://flask-server-production-c983.up.railway.app//log-alert-event', {
+                            // alert("user inside " + breachedFence_{{ this.get_name() }});
+                            fetch('https://flask-server-production-c983.up.railway.app/log-alert-event', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ class GPSTrackingControl(MacroElement):
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Event data saved:', data);
-                                # alert('Event data saved successfully!');
+                                // alert('Event data saved successfully!');
                             })
                             .catch(error => {
                                 console.error('Error saving tracking data:', error);
