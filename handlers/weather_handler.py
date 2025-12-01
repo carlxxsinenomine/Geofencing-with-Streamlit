@@ -41,7 +41,7 @@ class WeatherHandler:
     For weather api
     """
 
-    def get_current_forecast(self, lat=13.539201, lng=118.696289):
+    def get_current_forecast(self, lat=13.147298, lng= 123.731476):
         params = {
             'key': WEATHER_API,
             'q': f"{lat},{lng}"
@@ -65,7 +65,7 @@ class WeatherHandler:
             print(f"Data parsing error: {e}")
             return None
 
-    def get_coordinates_info(self, lat=14.103029, long=122.932497):
+    def get_coordinates_info(self, lat=13.147298, long= 123.731476):
         params = {
             'key': WEATHER_API,
             'q': f"{lat},{long}"
@@ -94,3 +94,4 @@ class WeatherHandler:
         except Exception as e:
             print(f"Error: {e}")
             return None
+

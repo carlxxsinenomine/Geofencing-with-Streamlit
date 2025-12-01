@@ -1,6 +1,9 @@
+flask
+flask-cors
 webdriver-manager
 selenium
 python-dotenv
+schedule
 langchain-core~=0.3.15
 langchain~=0.3.7
 langchain-google-genai~=2.0.4
