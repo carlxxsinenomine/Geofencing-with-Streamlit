@@ -30,6 +30,8 @@ class GPSTrackingControl(MacroElement):
             var drawnShapes_{{ this.get_name() }} = null;
             var isThereFences_{{ this.get_name() }} = false;
             
+            var breachedFence_{{ this.get_name() }} = null;
+            
             {% if this.drawn_shapes %}
             drawnShapes_{{ this.get_name() }} = {{ this.drawn_shapes | tojson }};
             isThereFences_{{ this.get_name() }} = true;
@@ -120,6 +122,7 @@ class GPSTrackingControl(MacroElement):
                     }
                     if (isInside) {
                         console.log('Point is inside fence:', properties.name || 'Unnamed fence');
+                        breachedFence_{{ this.get_name() }} = properties.name;
                         return true;
                     }
                 }
@@ -129,7 +132,7 @@ class GPSTrackingControl(MacroElement):
             
             function sendDataToServer_{{ this.get_name() }}() {
                 // Send data to API
-                fetch('http://localhost:5000/save-tracking', {
+                fetch('https://flask-server-production-c983.up.railway.app//save-tracking', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -192,21 +195,22 @@ class GPSTrackingControl(MacroElement):
                         var isInsideFence = isPointInsideGeofence_{{ this.get_name() }}(lng, lat);
     
                         if (isInsideFence) {
-                            alert("user inside fence");
-                            fetch('http://localhost:5000/log-alert-event', {
+                            # alert("user inside " + breachedFence_{{ this.get_name() }});
+                            fetch('https://flask-server-production-c983.up.railway.app//log-alert-event', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
-                                    userId: 090,
+                                    userId: "Carlxx",
                                     timestamp: new Date().toISOString(),
+                                    fenceName: breachedFence_{{ this.get_name() }},
                                 })
                             })
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Event data saved:', data);
-                                alert('Event data saved successfully!');
+                                # alert('Event data saved successfully!');
                             })
                             .catch(error => {
                                 console.error('Error saving tracking data:', error);

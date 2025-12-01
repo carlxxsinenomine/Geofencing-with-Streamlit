@@ -59,14 +59,14 @@ def save_tracking():
 @app.route('/log-alert-event', methods=['POST'])
 def log_alert_event():
     email_manager = EmailManager()
-    email_manager.create_message("Putanginamo Labas")
-    email_manager.send_alert_email()
-
     data = request.json
 
+    email_manager.create_message(f"You're inside {data['fenceName']}")
+    email_manager.send_alert_email()
     document = {
         "user_id": data['userId'],
-        "time_stamp": data['timestamp']
+        "time_stamp": data['timestamp'],
+        "fence_name": data['fenceName']
     }
     result = event_log.insert_one(document)
     return jsonify({"success": True, "id": str(result)})
@@ -157,9 +157,9 @@ if __name__ == '__main__':
 
     # Schedule the job every hour
     schedule.every(1).hours.do(fence_activation)
-
+    app.run(host="localhost", port=5000)
     # Run immediately on startup
-    fence_activation()
+    # fence_activation()
 
     # Keep the worker running
     while True:
