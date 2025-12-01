@@ -20,6 +20,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Chat history initialization
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
+# Initialize session state for view toggle
+if 'view_mode' not in st.session_state:
+    st.session_state.view_mode = 'weather'  # 'shapes', 'trails', or 'chat'
+
+# Initialize API key in session state
+if 'gemini_api_key' not in st.session_state:
+    st.session_state.gemini_api_key = ""
+
 # Sidebar toggle
 with st.sidebar:
     st.title("View Options")
@@ -128,19 +140,6 @@ if 'pending_name' not in st.session_state:
     st.session_state.pending_name = False
 if 'processed_shape_ids' not in st.session_state:
     st.session_state.processed_shape_ids = set()
-
-# Chat history initialization
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-
-# Initialize session state for view toggle
-if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = 'weather'  # 'shapes', 'trails', or 'chat'
-
-# Initialize API key in session state
-if 'gemini_api_key' not in st.session_state:
-    st.session_state.gemini_api_key = ""
-
 # Initialize active trail
 if 'active_trail' not in st.session_state:
     st.session_state.active_trail = None
