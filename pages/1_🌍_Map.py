@@ -104,12 +104,14 @@ def init_connection():
     geo_db = client.geospatial_data
     return {'shapes_collection': geo_db.shapes,
             'user_collection': geo_db.user,
-            'trail_collection': geo_db.user_trail}
+            'trail_collection': geo_db.user_trail,
+            'weather_info': geo_db.weather_info}
 
 
 db_collections = init_connection()
 shapes = db_collections['shapes_collection']
 trail_collection = db_collections['trail_collection']
+weather_info = db_collections['weather_info']
 
 if 'named_shapes' not in st.session_state:
     try:
@@ -467,10 +469,21 @@ with output_col:
                         st.rerun()
                     st.stop()
 
+
                 if not coordinates_result:
                     coordinates_info = f"Lat: {st.session_state.user_lat:.4f}, Lng: {st.session_state.user_lng:.4f}"
                 else:
                     coordinates_info = coordinates_result.get('name', 'Unknown Location')
+
+                try:
+                    result = weather_info.insert_one({
+                        'lat': st.session_state.user_lat,
+                        'long': st.session_state.user_lng,
+                        'coordinates_info': coordinates_info,
+                    })
+                except Exception as e:
+                    st.error(f"Error saving to database: {e}")
+                    st.stop()
 
                 # Location name
                 st.markdown(f"### 📍 {coordinates_info}")
