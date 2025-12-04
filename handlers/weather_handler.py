@@ -172,3 +172,6 @@ class WeatherHandler:
         except Exception as e:
             print(f"Error: {e}")
             return None
+
+w = WeatherHandler()
+print(w.get_panahon_advisory('Calasgasan'))
