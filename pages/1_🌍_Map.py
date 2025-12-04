@@ -513,16 +513,10 @@ with output_col:
                 with st.spinner("Fetching Panahon Advisory..."):
                     panahon_advisory = w.get_panahon_advisory(coordinates_info)
 
-                # Debug: Show what we got from the API
-                st.write("🔍 Debug - API Response:", panahon_advisory)
-
                 # PAGASA Advisories Section
                 st.markdown("#### 📢 PAGASA Weather Advisories")
 
                 has_advisory = False
-
-                # NOTE: API returns lowercase keys (rainfall, thunderstorm, flood, tropical)
-                # not capitalized keys (Rainfall, Thunderstorm, Flood, Tropical)
 
                 # Rainfall Advisory
                 if panahon_advisory.get('rainfall'):  # Changed from 'Rainfall' to 'rainfall'
