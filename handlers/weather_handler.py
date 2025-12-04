@@ -11,6 +11,8 @@ import requests
 import os
 from dotenv import load_dotenv
 from typing import Optional, Dict
+import streamlit as st
+
 load_dotenv()
 
 WEATHER_API = os.getenv("WEATHER_API")
@@ -27,9 +29,21 @@ class WeatherHandler:
         self.windy_api_base = "https://api.windy.com/api/point-forecast/v2"
 
     def get_panahon_advisory(self, location: str) -> Dict:
+        """
+        Fetch weather alerts from the Flask API endpoint instead of scraping directly.
+
+        Args:
+            location: Location name to fetch weather alerts for (e.g., "Naga", "Masbate")
+
+        Returns:
+            Dictionary containing weather alerts or None values if failed
+        """
         try:
             # API endpoint
             api_url = "https://flask-server-production-c983.up.railway.app/get-weather-alerts"
+
+            print(f"🌐 Fetching weather alerts for: {location}")
+            st.write(f"🌐 Fetching weather alerts for: {location}")  # Debug in Streamlit
 
             # Make GET request with location parameter
             response = requests.get(
@@ -38,22 +52,32 @@ class WeatherHandler:
                 timeout=120  # 2 minute timeout since scraping takes time
             )
 
+            print(f"📡 Response status: {response.status_code}")
+            st.write(f"📡 Response status: {response.status_code}")  # Debug
+
             # Check if request was successful
             response.raise_for_status()
 
             # Parse JSON response
             data = response.json()
 
+            print(f"📦 Response data: {data}")
+            st.write(f"📦 Full API response:", data)  # Debug - see full response
+
             if data.get("success"):
-                # Return just the alerts data
-                return data.get("alerts", {
+                alerts = data.get("alerts", {
                     'Rainfall': None,
                     'Thunderstorm': None,
                     'Flood': None,
                     'Tropical': None
                 })
+                print(f"✅ Successfully retrieved alerts: {alerts}")
+                st.write(f"✅ Alerts retrieved:", alerts)  # Debug
+                return alerts
             else:
-                print(f"API returned error: {data.get('error', 'Unknown error')}")
+                error_msg = data.get('error', 'Unknown error')
+                print(f"❌ API returned error: {error_msg}")
+                st.error(f"API returned error: {error_msg}")
                 return {
                     'Rainfall': None,
                     'Thunderstorm': None,
@@ -62,7 +86,9 @@ class WeatherHandler:
                 }
 
         except requests.exceptions.Timeout:
-            print(f"⏱️ Request timeout while fetching weather alerts for {location}")
+            error_msg = f"⏱️ Request timeout while fetching weather alerts for {location}"
+            print(error_msg)
+            st.error(error_msg)
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
@@ -71,7 +97,9 @@ class WeatherHandler:
             }
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error fetching weather alerts from API: {e}")
+            error_msg = f"❌ Error fetching weather alerts from API: {e}"
+            print(error_msg)
+            st.error(error_msg)
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
@@ -80,7 +108,11 @@ class WeatherHandler:
             }
 
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            error_msg = f"❌ Unexpected error: {e}"
+            print(error_msg)
+            st.error(error_msg)
+            import traceback
+            st.error(traceback.format_exc())  # Show full traceback
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
@@ -151,3 +183,5 @@ class WeatherHandler:
             print(f"Error: {e}")
             return None
 
+w = WeatherHandler()
+print(w.get_panahon_advisory('Sagpon'))
