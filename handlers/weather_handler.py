@@ -10,8 +10,7 @@
 import requests
 import os
 from dotenv import load_dotenv
-from web_scaper.PanahonScraper import PanahonScraper
-
+from typing import Optional, Dict
 load_dotenv()
 
 WEATHER_API = os.getenv("WEATHER_API")
@@ -27,10 +26,67 @@ class WeatherHandler:
 
         self.windy_api_base = "https://api.windy.com/api/point-forecast/v2"
 
-    def get_panahon_advisory(self, location):
-        panahon = PanahonScraper()
-        panahon.start_scraping(location=location)
-        return panahon.get_data()
+    def get_panahon_advisory(self, location: str) -> Dict:
+        try:
+            # API endpoint
+            api_url = "https://flask-server-production-c983.up.railway.app/get-weather-alerts"
+
+            # Make GET request with location parameter
+            response = requests.get(
+                api_url,
+                params={"location": location},
+                timeout=120  # 2 minute timeout since scraping takes time
+            )
+
+            # Check if request was successful
+            response.raise_for_status()
+
+            # Parse JSON response
+            data = response.json()
+
+            if data.get("success"):
+                # Return just the alerts data
+                return data.get("alerts", {
+                    'Rainfall': None,
+                    'Thunderstorm': None,
+                    'Flood': None,
+                    'Tropical': None
+                })
+            else:
+                print(f"API returned error: {data.get('error', 'Unknown error')}")
+                return {
+                    'Rainfall': None,
+                    'Thunderstorm': None,
+                    'Flood': None,
+                    'Tropical': None
+                }
+
+        except requests.exceptions.Timeout:
+            print(f"⏱️ Request timeout while fetching weather alerts for {location}")
+            return {
+                'Rainfall': None,
+                'Thunderstorm': None,
+                'Flood': None,
+                'Tropical': None
+            }
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error fetching weather alerts from API: {e}")
+            return {
+                'Rainfall': None,
+                'Thunderstorm': None,
+                'Flood': None,
+                'Tropical': None
+            }
+
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            return {
+                'Rainfall': None,
+                'Thunderstorm': None,
+                'Flood': None,
+                'Tropical': None
+            }
 
     #
     #

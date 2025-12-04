@@ -214,7 +214,7 @@ def add_trail_to_map():
         if trail.get('geometry', {}).get('type') == 'LineString':
             coordinates = trail['geometry']['coordinates']
             # Convert from [lng, lat] to [lat, lng] for folium
-            points = [[coord[0], coord[1]] for coord in coordinates]
+            points = [[coord[1], coord[0]] for coord in coordinates]
 
             folium.PolyLine(
                 locations=trail.get('geometry', {}).get('coordinates'),
