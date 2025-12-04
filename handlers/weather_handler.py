@@ -11,7 +11,6 @@ import requests
 import os
 from dotenv import load_dotenv
 from typing import Optional, Dict
-import streamlit as st
 
 load_dotenv()
 
@@ -43,17 +42,15 @@ class WeatherHandler:
             api_url = "https://flask-server-production-c983.up.railway.app/get-weather-alerts"
 
             print(f"🌐 Fetching weather alerts for: {location}")
-            st.write(f"🌐 Fetching weather alerts for: {location}")  # Debug in Streamlit
 
             # Make GET request with location parameter
             response = requests.get(
                 api_url,
                 params={"location": location},
-                timeout=120  # 2 minute timeout since scraping takes time
+                timeout=220  # 2 minute timeout since scraping takes time
             )
 
             print(f"📡 Response status: {response.status_code}")
-            st.write(f"📡 Response status: {response.status_code}")  # Debug
 
             # Check if request was successful
             response.raise_for_status()
@@ -62,7 +59,6 @@ class WeatherHandler:
             data = response.json()
 
             print(f"📦 Response data: {data}")
-            st.write(f"📦 Full API response:", data)  # Debug - see full response
 
             if data.get("success"):
                 alerts = data.get("alerts", {
@@ -72,12 +68,10 @@ class WeatherHandler:
                     'Tropical': None
                 })
                 print(f"✅ Successfully retrieved alerts: {alerts}")
-                st.write(f"✅ Alerts retrieved:", alerts)  # Debug
                 return alerts
             else:
                 error_msg = data.get('error', 'Unknown error')
                 print(f"❌ API returned error: {error_msg}")
-                st.error(f"API returned error: {error_msg}")
                 return {
                     'Rainfall': None,
                     'Thunderstorm': None,
@@ -88,7 +82,6 @@ class WeatherHandler:
         except requests.exceptions.Timeout:
             error_msg = f"⏱️ Request timeout while fetching weather alerts for {location}"
             print(error_msg)
-            st.error(error_msg)
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
@@ -99,7 +92,6 @@ class WeatherHandler:
         except requests.exceptions.RequestException as e:
             error_msg = f"❌ Error fetching weather alerts from API: {e}"
             print(error_msg)
-            st.error(error_msg)
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
@@ -110,9 +102,7 @@ class WeatherHandler:
         except Exception as e:
             error_msg = f"❌ Unexpected error: {e}"
             print(error_msg)
-            st.error(error_msg)
             import traceback
-            st.error(traceback.format_exc())  # Show full traceback
             return {
                 'Rainfall': None,
                 'Thunderstorm': None,
